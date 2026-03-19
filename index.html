@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달러 분할 트레이딩 관리</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --hint: #9b9b96;
+    --green-bg: #e1f5ee; --green: #0f6e56; --green-dark: #085041;
+    --red-bg: #fcebeb; --red: #a32d2d; --red-dark: #791f1f;
+    --amber-bg: #faeeda; --amber: #854f0b; --amber-dark: #633806;
+    --blue-bg: #e6f1fb; --blue: #185fa5; --blue-dark: #0c447c;
+    --purple-bg: #eeedfe; --purple: #534ab7; --purple-dark: #3c3489;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px 16px 48px; }
+  .container { max-width: 860px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+
+  /* Settings card */
+  .settings-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  .field input { width: 100%; padding: 9px 12px; border: 0.5px solid var(--border-md); border-radius: var(--radius-sm); font-size: 14px; background: var(--bg); color: var(--text); }
+  .field input:focus { outline: none; border-color: var(--purple); }
+  .field .unit { font-size: 12px; color: var(--hint); margin-top: 3px; }
+
+  /* Summary metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .metric { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  .metric-val { font-size: 20px; font-weight: 600; }
+  .metric-sub { font-size: 11px; margin-top: 3px; color: var(--muted); }
+  .val-green { color: var(--green); }
+  .val-red { color: var(--red); }
+  .val-blue { color: var(--blue); }
+  .val-amber { color: var(--amber); }
+  .val-purple { color: var(--purple); }
+
+  /* Progress bar */
+  .progress-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-title { font-size: 13px; font-weight: 500; }
+  .progress-pct { font-size: 13px; color: var(--muted); }
+  .progress-track { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 99px; background: var(--purple); transition: width 0.4s; }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+  .table-header { padding: 14px 20px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); }
+  .table-title { font-size: 14px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: right; padding: 10px 14px; background: var(--bg); border-bottom: 0.5px solid var(--border); letter-spacing: 0.04em; }
+  thead th:first-child { text-align: center; }
+  thead th:nth-child(2) { text-align: left; }
+  tbody tr { border-bottom: 0.5px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  td { padding: 11px 14px; font-size: 13px; text-align: right; vertical-align: middle; }
+  td:first-child { text-align: center; }
+  td:nth-child(2) { text-align: left; }
+
+  /* Status badge */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; cursor: pointer; border: none; }
+  .badge-done { background: var(--green-bg); color: var(--green-dark); }
+  .badge-active { background: var(--blue-bg); color: var(--blue-dark); }
+  .badge-wait { background: var(--bg); color: var(--hint); border: 0.5px solid var(--border); }
+  .badge-done:hover { background: #c0e8d8; }
+  .badge-active:hover { background: #cde4f8; }
+
+  /* Profit cell */
+  .profit-pos { color: var(--green-dark); font-weight: 500; }
+  .profit-neg { color: var(--red-dark); font-weight: 500; }
+
+  /* Arrow indicator for current rate */
+  .rate-marker { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+
+  /* Disclaimer */
+  .disclaimer { font-size: 11px; color: var(--hint); line-height: 1.6; padding: 12px 16px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    td, th { padding: 9px 8px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>달러 분할 트레이딩</h1>
+  <p class="subtitle">환율 하락 시 분할 매수 · 상승 시 분할 매도 관리 도구</p>
+
+  <!-- 설정 -->
+  <div class="settings-card">
+    <div class="settings-grid">
+      <div class="field">
+        <label>현재 환율 (원/달러)</label>
+        <input type="number" id="currentRate" value="1500" min="800" max="2000" step="1" oninput="recalc()">
+        <div class="unit"><a href="https://finance.naver.com/marketindex/exchangeDetail.naver?marketindexCd=FX_USDKRW" target="_blank" style="color:var(--blue);text-decoration:none;">네이버 금융에서 확인 →</a></div>
+      </div>
+      <div class="field">
+        <label>목표 매수 금액</label>
+        <input type="number" id="totalBudget" value="50000000" step="1000000" oninput="recalc()">
+        <div class="unit">원화 기준 총 예산</div>
+      </div>
+      <div class="field">
+        <label>분할 횟수</label>
+        <input type="number" id="splits" value="10" min="2" max="30" step="1" oninput="recalc()">
+        <div class="unit">회차 수</div>
+      </div>
+      <div class="field">
+        <label>매수 간격 (%)</label>
+        <input type="number" id="buyStep" value="2" min="0.5" max="10" step="0.1" oninput="recalc()">
+        <div class="unit">하락 시 매수 간격</div>
+      </div>
+      <div class="field">
+        <label>매도 간격 (%)</label>
+        <input type="number" id="sellStep" value="2" min="0.5" max="10" step="0.1" oninput="recalc()">
+        <div class="unit">상승 시 매도 간격</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요약 지표 -->
+  <div class="metrics" id="metrics"></div>
+
+  <!-- 진행률 -->
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <div class="progress-title">매수 진행률</div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- 거래 테이블 -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="table-title">분할 매수 / 매도 계획</div>
+      <div style="font-size:12px;color:var(--muted)">회차 클릭 시 완료 처리</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>회차</th>
+          <th>상태</th>
+          <th>매수 환율</th>
+          <th>매수 달러</th>
+          <th>투입 원화</th>
+          <th>매도 환율</th>
+          <th>환 차익</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="disclaimer">본 도구는 참고용 계산기입니다. 환율은 예측이 불가능하며, 모든 투자 결정과 결과에 대한 책임은 투자자 본인에게 있습니다.</div>
+</div>
+
+<script>
+const STATUS_KEY = 'dollar_trading_status';
+
+function loadStatus() {
+  try { return JSON.parse(localStorage.getItem(STATUS_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveStatus(s) {
+  localStorage.setItem(STATUS_KEY, JSON.stringify(s));
+}
+
+let statusMap = loadStatus();
+
+function recalc() {
+  const baseRate = parseFloat(document.getElementById('currentRate').value) || 1500;
+  const budget = parseFloat(document.getElementById('totalBudget').value) || 50000000;
+  const splits = parseInt(document.getElementById('splits').value) || 10;
+  const buyPct = parseFloat(document.getElementById('buyStep').value) / 100 || 0.02;
+  const sellPct = parseFloat(document.getElementById('sellStep').value) / 100 || 0.02;
+
+  const perBudget = budget / splits;
+  const rows = [];
+
+  for (let i = 0; i < splits; i++) {
+    const buyRate = baseRate * Math.pow(1 - buyPct, i);
+    const dollars = perBudget / buyRate;
+    const sellRate = buyRate * (1 + sellPct);
+    const profit = dollars * (sellRate - buyRate);
+    rows.push({ idx: i + 1, buyRate, dollars, krw: perBudget, sellRate, profit });
+  }
+
+  // 진행 상태 판단 (현재 환율 기준 자동 표시)
+  const doneCount = rows.filter(r => statusMap[r.idx] === 'done').length;
+  const totalProfit = rows.reduce((a, r) => a + (statusMap[r.idx] === 'done' ? r.profit : 0), 0);
+  const totalDollars = rows.reduce((a, r) => a + (statusMap[r.idx] === 'done' ? r.dollars : 0), 0);
+  const investedKrw = rows.reduce((a, r) => a + (statusMap[r.idx] === 'done' ? r.krw : 0), 0);
+
+  // 현재 환율 기준 평가차익 (보유 달러)
+  const holdingRows = rows.filter(r => statusMap[r.idx] === 'hold');
+  const holdDollars = holdingRows.reduce((a, r) => a + r.dollars, 0);
+  const holdCost = holdingRows.reduce((a, r) => a + r.krw, 0);
+  const holdValue = holdDollars * baseRate;
+  const holdProfit = holdValue - holdCost;
+
+  // 지표
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">현재 환율</div>
+      <div class="metric-val val-blue">${baseRate.toLocaleString()}</div>
+      <div class="metric-sub">원/달러</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">완료 회차</div>
+      <div class="metric-val val-green">${doneCount}<span style="font-size:14px;font-weight:400;color:var(--muted)"> / ${splits}</span></div>
+      <div class="metric-sub">매수·매도 완료</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">실현 환 차익</div>
+      <div class="metric-val ${totalProfit >= 0 ? 'val-green' : 'val-red'}">${totalProfit >= 0 ? '+' : ''}${Math.round(totalProfit / 10000).toLocaleString()}만</div>
+      <div class="metric-sub">원</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">보유 달러</div>
+      <div class="metric-val val-amber">${holdDollars > 0 ? '$' + Math.round(holdDollars).toLocaleString() : '-'}</div>
+      <div class="metric-sub">${holdDollars > 0 ? (holdProfit >= 0 ? '평가 +' : '평가 ') + Math.round(holdProfit / 10000).toLocaleString() + '만원' : '보유 없음'}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">총 예상 차익</div>
+      <div class="metric-val val-purple">+${Math.round(rows.reduce((a,r)=>a+r.profit,0)/10000).toLocaleString()}만</div>
+      <div class="metric-sub">전 회차 완료 시</div>
+    </div>
+  `;
+
+  // 진행률
+  const pct = Math.round((doneCount / splits) * 100);
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  // 테이블
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.map(r => {
+    const st = statusMap[r.idx];
+    const isCurrent = !st && r.buyRate <= baseRate && (rows[r.idx] ? rows[r.idx].buyRate > baseRate : true);
+
+    let badgeHtml, rowStyle = '';
+    if (st === 'done') {
+      badgeHtml = `<button class="badge badge-done" onclick="toggleStatus(${r.idx})">✓ 완료</button>`;
+      rowStyle = 'opacity:0.6';
+    } else if (st === 'hold') {
+      badgeHtml = `<button class="badge badge-active" onclick="toggleStatus(${r.idx})">● 보유중</button>`;
+    } else if (isCurrent) {
+      badgeHtml = `<button class="badge badge-active" onclick="toggleStatus(${r.idx})">▼ 매수구간</button>`;
+    } else if (r.buyRate > baseRate) {
+      badgeHtml = `<button class="badge badge-active" onclick="toggleStatus(${r.idx})">△ 매수전</button>`;
+    } else {
+      badgeHtml = `<button class="badge badge-wait" onclick="toggleStatus(${r.idx})">대기</button>`;
+    }
+
+    const profitClass = r.profit >= 0 ? 'profit-pos' : 'profit-neg';
+    const isAboveCurrent = r.buyRate > baseRate;
+
+    return `<tr style="${rowStyle}">
+      <td style="color:var(--muted);font-size:12px">${r.idx}회</td>
+      <td>${badgeHtml}</td>
+      <td style="font-weight:500;${isAboveCurrent ? 'color:var(--hint)' : ''}">${Math.round(r.buyRate).toLocaleString()}</td>
+      <td>$${r.dollars.toFixed(1)}</td>
+      <td>${(r.krw / 10000).toFixed(0)}만원</td>
+      <td style="color:var(--muted)">${Math.round(r.sellRate).toLocaleString()}</td>
+      <td class="${profitClass}">+${Math.round(r.profit / 10000).toFixed(1)}만</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleStatus(idx) {
+  const cur = statusMap[idx];
+  if (!cur) statusMap[idx] = 'hold';
+  else if (cur === 'hold') statusMap[idx] = 'done';
+  else delete statusMap[idx];
+  saveStatus(statusMap);
+  recalc();
+}
+
+recalc();
+</script>
+</body>
+</html>
