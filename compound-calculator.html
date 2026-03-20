@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>복리 계산기</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f11;
+    --surface: #18181c;
+    --surface2: #222228;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0efe8;
+    --text2: #8a8a96;
+    --text3: #55555e;
+    --accent: #b5f05a;
+    --accent-dim: rgba(181,240,90,0.12);
+    --accent-glow: rgba(181,240,90,0.25);
+    --danger: #ff6b5b;
+    --danger-dim: rgba(255,107,91,0.12);
+    --warn: #ffbb38;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  html { font-size: 16px; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 48px 0 32px;
+    text-align: center;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: var(--accent);
+    margin: 20px auto 0;
+  }
+  header h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  header p {
+    margin-top: 10px;
+    font-size: 0.875rem;
+    color: var(--text2);
+    font-weight: 300;
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 11px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.2s;
+    letter-spacing: -0.01em;
+  }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #0f0f11;
+  }
+  .tab-btn:not(.active):hover { color: var(--text); background: var(--surface2); }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  /* ── Sliders ── */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 28px;
+  }
+  @media (max-width: 560px) { .controls-grid { grid-template-columns: 1fr; } }
+
+  .control-row label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.8125rem;
+    color: var(--text2);
+    margin-bottom: 10px;
+  }
+  .control-row label span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.875rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    border: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent);
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8a96' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  select:focus { border-color: var(--accent); }
+
+  /* ── Stats ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .stat-value.green { color: var(--accent); }
+  .stat-value.red { color: var(--danger); }
+
+  /* ── Status Banner ── */
+  .status-banner {
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 0.8125rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .status-banner.ok {
+    background: rgba(181,240,90,0.08);
+    border: 1px solid rgba(181,240,90,0.2);
+    color: var(--accent);
+  }
+  .status-banner.warn {
+    background: rgba(255,107,91,0.08);
+    border: 1px solid rgba(255,107,91,0.2);
+    color: var(--danger);
+  }
+  .status-banner strong { font-weight: 700; }
+
+  /* ── Chart ── */
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    margin-bottom: 12px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Panel transition ── */
+  .panel { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 0.75rem;
+    color: var(--text3);
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>복리 계산기</h1>
+  <p>자산 성장과 인출 시뮬레이션</p>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-grow" onclick="switchTab('grow')">📈 자산 성장</button>
+    <button class="tab-btn" id="tab-fire" onclick="switchTab('fire')">🔥 인출 시뮬레이션</button>
+  </div>
+
+  <!-- ── 자산 성장 패널 ── -->
+  <div id="panel-grow" class="panel">
+    <div class="card">
+      <div class="card-title">투자 설정</div>
+      <div class="controls-grid">
+        <div class="control-row">
+          <label>초기 투자금 <span id="g-principal-out"></span></label>
+          <input type="range" id="g-principal" min="10000000" max="2000000000" step="10000000" value="100000000" oninput="renderGrow()">
+        </div>
+        <div class="control-row">
+          <label>연 이율 <span id="g-rate-out"></span></label>
+          <input type="range" id="g-rate" min="1" max="30" step="0.5" value="7" oninput="renderGrow()">
+        </div>
+        <div class="control-row">
+          <label>투자 기간 <span id="g-years-out"></span></label>
+          <input type="range" id="g-years" min="5" max="40" step="1" value="20" oninput="renderGrow()">
+        </div>
+        <div class="control-row">
+          <label>복리 횟수 <span></span></label>
+          <select id="g-compound" onchange="renderGrow()">
+            <option value="1">연 1회</option>
+            <option value="4">분기 1회</option>
+            <option value="12" selected>월 1회</option>
+            <option value="365">일 1회</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-label">원금</div>
+        <div class="stat-value" id="g-stat-principal"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">이자 수익</div>
+        <div class="stat-value green" id="g-stat-interest"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">최종 금액</div>
+        <div class="stat-value" id="g-stat-total"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chart-wrap"><canvas id="g-chart"></canvas></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#b5f05a;"></div>복리 금액</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#444450;"></div>원금</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 인출 시뮬레이션 패널 ── -->
+  <div id="panel-fire" class="panel" style="display:none;">
+    <div class="card">
+      <div class="card-title">자산 & 인출 설정</div>
+      <div class="controls-grid">
+        <div class="control-row">
+          <label>보유 자산 <span id="f-principal-out"></span></label>
+          <input type="range" id="f-principal" min="10000000" max="2000000000" step="10000000" value="500000000" oninput="renderFire()">
+        </div>
+        <div class="control-row">
+          <label>연 수익률 <span id="f-rate-out"></span></label>
+          <input type="range" id="f-rate" min="1" max="30" step="0.5" value="5" oninput="renderFire()">
+        </div>
+        <div class="control-row">
+          <label>월 인출금 <span id="f-withdraw-out"></span></label>
+          <input type="range" id="f-withdraw" min="100000" max="10000000" step="100000" value="2000000" oninput="renderFire()">
+        </div>
+        <div class="control-row">
+          <label>시뮬레이션 기간 <span id="f-years-out"></span></label>
+          <input type="range" id="f-years" min="10" max="50" step="1" value="30" oninput="renderFire()">
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-label">월 이자 수익</div>
+        <div class="stat-value green" id="f-monthly-interest"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">인출 후 잉여/부족</div>
+        <div class="stat-value" id="f-surplus"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">자산 고갈 예상</div>
+        <div class="stat-value" id="f-depletion"></div>
+      </div>
+    </div>
+
+    <div id="f-status-banner" class="status-banner ok"></div>
+
+    <div class="card">
+      <div class="chart-wrap"><canvas id="f-chart"></canvas></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#b5f05a;"></div>잔여 자산</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff6b5b;"></div>자산 고갈 구간</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>복리 공식: A = P × (1 + r/n)^(n×t) &nbsp;|&nbsp; 본 계산기는 참고용이며 투자 조언이 아닙니다.</footer>
+
+<script>
+const fmt = n => '₩' + Math.round(n).toLocaleString('ko-KR');
+const fmtS = n => {
+  const abs = Math.abs(n);
+  const s = abs >= 100000000 ? (abs/100000000).toFixed(1)+'억'
+           : abs >= 10000   ? (abs/10000).toFixed(0)+'만'
+           : abs.toFixed(0);
+  return (n < 0 ? '-₩' : '₩') + s;
+};
+
+let gChart, fChart;
+
+function switchTab(tab) {
+  ['grow','fire'].forEach(t => {
+    document.getElementById('panel-'+t).style.display = t === tab ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'fire') renderFire(); else renderGrow();
+}
+
+/* ── 자산 성장 ── */
+function renderGrow() {
+  const P = +document.getElementById('g-principal').value;
+  const r = +document.getElementById('g-rate').value / 100;
+  const Y = +document.getElementById('g-years').value;
+  const n = +document.getElementById('g-compound').value;
+
+  document.getElementById('g-principal-out').textContent = fmtS(P);
+  document.getElementById('g-rate-out').textContent = (+document.getElementById('g-rate').value).toFixed(1) + '%';
+  document.getElementById('g-years-out').textContent = Y + '년';
+  document.getElementById('g-stat-principal').textContent = fmtS(P);
+
+  const labels = [], cData = [], pData = [];
+  for (let y = 0; y <= Y; y++) {
+    labels.push(y + '년');
+    cData.push(Math.round(P * Math.pow(1 + r/n, n*y)));
+    pData.push(P);
+  }
+  const fin = cData[cData.length-1];
+  document.getElementById('g-stat-interest').textContent = fmtS(fin - P);
+  document.getElementById('g-stat-total').textContent = fmtS(fin);
+
+  if (gChart) gChart.destroy();
+  gChart = new Chart(document.getElementById('g-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'복리', data: cData, borderColor:'#b5f05a', backgroundColor:'rgba(181,240,90,0.08)', fill:true, tension:0.35, pointRadius:0, borderWidth:2 },
+        { label:'원금', data: pData, borderColor:'#444450', fill:false, tension:0, pointRadius:0, borderWidth:1.5, borderDash:[5,5] }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ' '+fmt(ctx.raw) } } },
+      scales: {
+        y: { ticks:{ color:'#8a8a96', callback: v => fmtS(v), font:{size:11} }, grid:{ color:'rgba(255,255,255,0.05)' }, border:{display:false} },
+        x: { ticks:{ color:'#8a8a96', autoSkip:true, maxTicksLimit:9, font:{size:11} }, grid:{display:false}, border:{display:false} }
+      }
+    }
+  });
+}
+
+/* ── 인출 시뮬레이션 ── */
+function renderFire() {
+  const P  = +document.getElementById('f-principal').value;
+  const ar = +document.getElementById('f-rate').value / 100;
+  const mr = ar / 12;
+  const W  = +document.getElementById('f-withdraw').value;
+  const Y  = +document.getElementById('f-years').value;
+
+  document.getElementById('f-principal-out').textContent = fmtS(P);
+  document.getElementById('f-rate-out').textContent = (+document.getElementById('f-rate').value).toFixed(1)+'%';
+  document.getElementById('f-withdraw-out').textContent = fmtS(W);
+  document.getElementById('f-years-out').textContent = Y+'년';
+
+  const mi = P * mr;
+  const surplus = mi - W;
+  document.getElementById('f-monthly-interest').textContent = fmtS(mi);
+
+  const surplusEl = document.getElementById('f-surplus');
+  surplusEl.textContent = (surplus>=0?'+':'')+fmtS(surplus);
+  surplusEl.className = 'stat-value ' + (surplus>=0 ? 'green' : 'red');
+
+  const labels=[], bData=[], dData=[];
+  let bal = P, depYear = null;
+
+  for (let m = 0; m <= Y*12; m++) {
+    if (m % 12 === 0) {
+      const yr = m/12;
+      labels.push(yr+'년');
+      if (bal > 0) { bData.push(Math.max(0,Math.round(bal))); dData.push(null); }
+      else         { bData.push(null); dData.push(0); }
+    }
+    bal = bal*(1+mr) - W;
+    if (bal <= 0 && depYear === null) depYear = m/12;
+  }
+
+  const depEl = document.getElementById('f-depletion');
+  const banner = document.getElementById('f-status-banner');
+
+  if (depYear !== null && depYear <= Y) {
+    depEl.textContent = Math.floor(depYear)+'년 후';
+    depEl.className = 'stat-value red';
+    banner.className = 'status-banner warn';
+    banner.innerHTML = '⚠ 현재 인출 속도라면 약 <strong>'+Math.floor(depYear)+'년 후</strong> 자산이 소진됩니다. 인출금을 줄이거나 수익률을 높이세요.';
+  } else {
+    depEl.textContent = '고갈 없음';
+    depEl.className = 'stat-value green';
+    banner.className = 'status-banner ok';
+    const finalBal = Math.round(P*Math.pow(1+mr,Y*12) - W*(Math.pow(1+mr,Y*12)-1)/mr);
+    banner.innerHTML = '✓ '+Y+'년 후에도 자산이 유지됩니다. 최종 잔액 <strong>'+fmtS(Math.max(0,finalBal))+'</strong>';
+  }
+
+  if (fChart) fChart.destroy();
+  fChart = new Chart(document.getElementById('f-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'잔여', data:bData, borderColor:'#b5f05a', backgroundColor:'rgba(181,240,90,0.08)', fill:true, tension:0.35, pointRadius:0, borderWidth:2 },
+        { label:'고갈', data:dData, borderColor:'#ff6b5b', backgroundColor:'rgba(255,107,91,0.15)', fill:true, tension:0, pointRadius:0, borderWidth:2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.raw!==null?' '+fmt(ctx.raw):'' } } },
+      scales: {
+        y: { min:0, ticks:{ color:'#8a8a96', callback: v=>fmtS(v), font:{size:11} }, grid:{ color:'rgba(255,255,255,0.05)' }, border:{display:false} },
+        x: { ticks:{ color:'#8a8a96', autoSkip:true, maxTicksLimit:9, font:{size:11} }, grid:{display:false}, border:{display:false} }
+      }
+    }
+  });
+}
+
+renderGrow();
+</script>
+</body>
+</html>
