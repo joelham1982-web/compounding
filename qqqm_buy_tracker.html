@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QQQM 분할매수 트래커</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #080c10;
+    --bg2:    #0e1419;
+    --bg3:    #151d24;
+    --bg4:    #1c2730;
+    --border: rgba(255,255,255,0.07);
+    --text:   #dde4ec;
+    --text2:  #7a8fa0;
+    --text3:  #4a5f70;
+    --blue:   #3b9eff;
+    --green:  #2ecc8a;
+    --red:    #ff4d4d;
+    --teal:   #00d4aa;
+    --mono:   'IBM Plex Mono', monospace;
+    --sans:   'IBM Plex Sans KR', sans-serif;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; padding:32px 20px 80px; }
+  body::before { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px); pointer-events:none; z-index:999; }
+  .container { max-width:860px; margin:0 auto; }
+
+  .header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .header-left h1 { font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:-.5px; margin-bottom:4px; }
+  .header-left p { font-family:var(--mono); font-size:11px; color:var(--text3); }
+  .fear-chip { display:flex; align-items:center; gap:10px; background:rgba(255,77,77,.1); border:1px solid rgba(255,77,77,.25); border-radius:8px; padding:8px 14px; }
+  .fear-dot { width:8px; height:8px; border-radius:50%; background:var(--red); animation:pulse 1.5s ease-in-out infinite; flex-shrink:0; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+  .fear-num { font-family:var(--mono); font-size:28px; font-weight:600; color:var(--red); line-height:1; }
+  .fear-label { font-size:11px; color:rgba(255,77,77,.8); line-height:1.5; }
+
+  .settings-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+  .settings-row { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end; }
+  .setting-group { display:flex; flex-direction:column; gap:6px; }
+  .setting-label { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+  .setting-input-wrap { display:flex; align-items:center; gap:6px; }
+  .setting-input { font-family:var(--mono); font-size:14px; font-weight:500; color:var(--text); background:var(--bg4); border:1px solid rgba(255,255,255,.1); border-radius:6px; padding:6px 10px; width:120px; outline:none; transition:border-color .15s; }
+  .setting-input:focus { border-color:var(--blue); }
+  .setting-input::-webkit-inner-spin-button { -webkit-appearance:none; }
+  .setting-unit { font-family:var(--mono); font-size:12px; color:var(--text3); }
+  .apply-btn { font-family:var(--mono); font-size:11px; padding:7px 16px; border-radius:6px; border:1px solid rgba(59,158,255,.4); background:rgba(59,158,255,.1); color:var(--blue); cursor:pointer; transition:all .15s; align-self:flex-end; }
+  .apply-btn:hover { background:rgba(59,158,255,.22); }
+  .per-display { font-family:var(--mono); font-size:11px; color:var(--text3); margin-top:8px; }
+
+  .rule-bar { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:12px 18px; margin-bottom:16px; display:flex; gap:20px; flex-wrap:wrap; }
+  .rule-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); }
+  .rule-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .rule-item strong { color:var(--text); }
+
+  .progress-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:16px; }
+  .progress-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  .progress-title { font-family:var(--mono); font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+  .progress-pct { font-family:var(--mono); font-size:22px; font-weight:600; color:var(--blue); }
+  .progress-bg { background:var(--bg4); border-radius:3px; height:6px; margin-bottom:6px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--teal)); border-radius:3px; transition:width .5s cubic-bezier(.4,0,.2,1); width:0%; }
+  .progress-sub { font-family:var(--mono); font-size:11px; color:var(--text3); }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:20px; }
+  .stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .stat-label { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .stat-value { font-family:var(--mono); font-size:20px; font-weight:600; line-height:1; margin-bottom:4px; }
+  .stat-sub { font-size:11px; color:var(--text3); }
+  .c-blue{color:var(--blue);} .c-green{color:var(--green);} .c-teal{color:var(--teal);} .c-dim{color:var(--text3);}
+
+  .table-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .table-title { font-family:var(--mono); font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; }
+  .reset-btn { font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:5px; border:1px solid rgba(255,255,255,.12); background:transparent; color:var(--text3); cursor:pointer; transition:all .15s; }
+  .reset-btn:hover { color:var(--text); background:var(--bg3); }
+
+  .col-heads { display:grid; grid-template-columns:44px 62px 1fr 100px 100px 72px 100px; padding:6px 12px; font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; border-bottom:1px solid var(--border); }
+  .col-heads span:nth-child(n+4) { text-align:right; }
+  .col-heads span:nth-child(6)   { text-align:center; }
+  .col-heads span:last-child     { text-align:center; }
+
+  .rows-wrap { max-height:420px; overflow-y:auto; }
+  .rows-wrap::-webkit-scrollbar { width:3px; }
+  .rows-wrap::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:2px; }
+
+  .row { display:grid; grid-template-columns:44px 62px 1fr 100px 100px 72px 100px; padding:8px 12px; border-bottom:1px solid var(--border); align-items:center; transition:background .1s; }
+  .row:last-child { border-bottom:none; }
+  .row:hover { background:var(--bg3); }
+  .row.is-next { background:rgba(59,158,255,.05); border-left:2px solid var(--blue); padding-left:10px; }
+  .row.is-done { opacity:.55; }
+
+  .row-n    { font-family:var(--mono); font-size:12px; color:var(--text3); }
+  .row-date { font-family:var(--mono); font-size:11px; color:var(--text2); }
+  .row-amt  { font-family:var(--mono); font-size:12px; font-weight:500; text-align:right; }
+  .row-cum  { font-family:var(--mono); font-size:11px; color:var(--text3); text-align:right; }
+
+  .badge { display:inline-flex; align-items:center; gap:3px; font-family:var(--mono); font-size:10px; font-weight:500; padding:2px 7px; border-radius:4px; }
+  .badge-wait { background:var(--bg4); color:var(--text3); }
+  .badge-next { background:rgba(59,158,255,.15); color:var(--blue); border:1px solid rgba(59,158,255,.3); }
+  .badge-done { background:rgba(46,204,138,.12); color:var(--green); }
+  .badge-skip { background:var(--bg4); color:var(--text3); border:1px solid var(--border); }
+
+  .action-cell { text-align:center; }
+  .btn-buy  { font-family:var(--mono); font-size:11px; font-weight:500; padding:4px 10px; border-radius:5px; border:1px solid rgba(59,158,255,.4); background:rgba(59,158,255,.12); color:var(--blue); cursor:pointer; transition:all .15s; }
+  .btn-buy:hover { background:rgba(59,158,255,.22); }
+  .btn-skip { font-family:var(--mono); font-size:11px; padding:4px 8px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text3); cursor:pointer; transition:all .15s; }
+  .btn-skip:hover { background:var(--bg3); }
+  .btn-undo { font-family:var(--mono); font-size:11px; padding:4px 10px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text3); cursor:pointer; transition:all .15s; }
+  .btn-undo:hover { background:var(--bg3); }
+  .btn-group { display:flex; gap:4px; justify-content:center; }
+
+  .complete-banner { background:rgba(46,204,138,.08); border:1px solid rgba(46,204,138,.2); border-radius:10px; padding:14px; margin-top:14px; font-family:var(--mono); font-size:13px; color:var(--green); text-align:center; display:none; }
+
+  .memo-card { background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-top:16px; }
+  .memo-title { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+  .memo-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .memo-list li { font-size:12px; color:var(--text2); padding-left:14px; position:relative; line-height:1.6; }
+  .memo-list li::before { content:'›'; position:absolute; left:0; color:var(--blue); font-weight:600; }
+  .memo-list li strong { color:var(--text); }
+
+  footer { text-align:center; margin-top:32px; font-family:var(--mono); font-size:10px; color:var(--text3); letter-spacing:.04em; }
+
+  @media(max-width:640px) {
+    .stat-grid { grid-template-columns:1fr 1fr; }
+    .col-heads, .row { grid-template-columns:36px 54px 1fr 80px 66px; }
+    .col-heads span:nth-child(6), .col-heads span:nth-child(7),
+    .row>*:nth-child(6), .row>*:nth-child(7) { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>QQQM 분할매수 트래커</h1>
+      <p id="header-sub">$60,000 · 20회 균등 분할 · $3,000/회 · LOC 주문</p>
+    </div>
+    <div class="fear-chip">
+      <div class="fear-dot"></div>
+      <div class="fear-num">15</div>
+      <div class="fear-label"><strong>Extreme Fear</strong><br>F&amp;G Index</div>
+    </div>
+  </div>
+
+  <div class="settings-card">
+    <div class="settings-row">
+      <div class="setting-group">
+        <div class="setting-label">총 투자금액</div>
+        <div class="setting-input-wrap">
+          <span class="setting-unit">$</span>
+          <input class="setting-input" type="number" id="inp-total" value="60000" min="100" step="1000">
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">분할 횟수</div>
+        <div class="setting-input-wrap">
+          <input class="setting-input" type="number" id="inp-count" value="20" min="1" max="100" style="width:80px;">
+          <span class="setting-unit">회</span>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-label">F&amp;G 매수 기준</div>
+        <div class="setting-input-wrap">
+          <input class="setting-input" type="number" id="inp-fg" value="15" min="1" max="30" style="width:80px;">
+          <span class="setting-unit">이하</span>
+        </div>
+      </div>
+      <button class="apply-btn" onclick="applySettings()">적용</button>
+    </div>
+    <div class="per-display" id="per-display">회당 매수금액: $3,000</div>
+  </div>
+
+  <div class="rule-bar">
+    <div class="rule-item">
+      <div class="rule-dot" style="background:var(--blue)"></div>
+      <span>F&amp;G <strong id="rule-fg">15</strong> 이하 → QQQM LOC 매수 <strong id="rule-per">$3,000</strong></span>
+    </div>
+    <div class="rule-item">
+      <div class="rule-dot" style="background:var(--text3)"></div>
+      <span>조건 미충족 → 주문 안 넣음</span>
+    </div>
+    <div class="rule-item">
+      <div class="rule-dot" style="background:var(--green)"></div>
+      <span>잔여 현금 → <strong>SGOV</strong> 보유 (연 ~4.5%)</span>
+    </div>
+  </div>
+
+  <div class="progress-card">
+    <div class="progress-top">
+      <span class="progress-title">PROGRESS</span>
+      <span class="progress-pct" id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bg"><div class="progress-fill" id="prog-fill"></div></div>
+    <div class="progress-sub" id="prog-sub">0 / 20회 완료 · 투자금 $0 · 잔여 $60,000</div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">완료</div>
+      <div class="stat-value c-blue" id="s-done">0<span style="font-size:13px;color:var(--text3)">/20</span></div>
+      <div class="stat-sub">회 매수 완료</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">투자금액</div>
+      <div class="stat-value c-teal" id="s-invested">$0</div>
+      <div class="stat-sub">QQQM 매수</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">잔여현금</div>
+      <div class="stat-value c-green" id="s-remaining">$60,000</div>
+      <div class="stat-sub">SGOV 운용 중</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">건너뜀</div>
+      <div class="stat-value c-dim" id="s-skipped">0</div>
+      <div class="stat-sub">조건 미충족</div>
+    </div>
+  </div>
+
+  <div class="table-header">
+    <span class="table-title">매수 체크리스트</span>
+    <button class="reset-btn" onclick="resetAll()">초기화</button>
+  </div>
+
+  <div class="col-heads">
+    <span>회차</span>
+    <span>날짜</span>
+    <span>조건</span>
+    <span>매수금액</span>
+    <span>누적투자</span>
+    <span>상태</span>
+    <span>액션</span>
+  </div>
+  <div class="rows-wrap" id="rows-wrap"></div>
+
+  <div class="complete-banner" id="complete-banner">✓ 분할매수 완료</div>
+
+  <div class="memo-card">
+    <div class="memo-title">실전 원칙</div>
+    <ul class="memo-list">
+      <li>매일 밤 <strong>CNN Fear &amp; Greed Index</strong> 확인 → 기준 이하면 QQQM <strong>LOC 주문</strong> 설정 후 취침</li>
+      <li>LOC(Limit on Close)는 당일 장 마감가 체결 · <strong>GTC 미사용</strong> — 매일 새로 주문</li>
+      <li>조건 미충족인 날은 주문 안 넣고 <strong>건너뜀</strong> → 잔여 현금은 SGOV 유지</li>
+      <li>F&amp;G가 지속적으로 <strong>25 이상 회복</strong> 시 플랜 일시 중단 · SGOV 대기</li>
+      <li>매수 완료 후 <strong>최소 3년 이상 보유</strong> · 중간 등락에 반응 안 함</li>
+    </ul>
+  </div>
+
+  <footer id="footer-txt">QQQM SPLIT BUY TRACKER · $3,000 × 20 · F&G ≤15 · LOC ORDER</footer>
+</div>
+
+<script>
+const SK = 'qqqm_v2';
+let TOTAL=60000, COUNT=20, FG=15, PER=3000;
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(SK);
+    if (s) {
+      const p = JSON.parse(s);
+      if (p.cfg) { TOTAL=p.cfg.total; COUNT=p.cfg.count; FG=p.cfg.fg; PER=Math.round(TOTAL/COUNT); syncUI(); }
+      return p.rows || mkRows();
+    }
+  } catch(e) {}
+  return mkRows();
+}
+function mkRows() { return Array.from({length:COUNT},(_,i)=>({n:i+1,status:'wait',date:'',fg:''})); }
+function syncUI() {
+  document.getElementById('inp-total').value = TOTAL;
+  document.getElementById('inp-count').value = COUNT;
+  document.getElementById('inp-fg').value    = FG;
+}
+function save(rows) {
+  try { localStorage.setItem(SK, JSON.stringify({cfg:{total:TOTAL,count:COUNT,fg:FG}, rows})); } catch(e) {}
+}
+
+let state = loadState();
+
+function applySettings() {
+  const t = parseInt(document.getElementById('inp-total').value)||60000;
+  const c = parseInt(document.getElementById('inp-count').value)||20;
+  const f = parseInt(document.getElementById('inp-fg').value)||15;
+  if (state.some(s=>s.status!=='wait')) {
+    if (!confirm('진행 기록이 초기화됩니다. 계속할까요?')) return;
+  }
+  TOTAL=t; COUNT=c; FG=f; PER=Math.round(TOTAL/COUNT);
+  state = mkRows();
+  updateLabels(); save(state); render();
+}
+
+function updateLabels() {
+  PER = Math.round(TOTAL/COUNT);
+  document.getElementById('per-display').textContent  = '회당 매수금액: $'+PER.toLocaleString();
+  document.getElementById('rule-fg').textContent      = FG;
+  document.getElementById('rule-per').textContent     = '$'+PER.toLocaleString();
+  document.getElementById('header-sub').textContent   = '$'+TOTAL.toLocaleString()+' · '+COUNT+'회 균등 분할 · $'+PER.toLocaleString()+'/회 · LOC 주문';
+  document.getElementById('footer-txt').textContent   = 'QQQM SPLIT BUY TRACKER · $'+PER.toLocaleString()+' × '+COUNT+' · F&G ≤'+FG+' · LOC ORDER';
+  document.getElementById('complete-banner').textContent = '✓ '+COUNT+'회 분할매수 완료 · 총 $'+TOTAL.toLocaleString()+' QQQM 매수 완료';
+}
+
+function today() { const d=new Date(); return (d.getMonth()+1)+'/'+d.getDate(); }
+
+function stats() {
+  const done=state.filter(s=>s.status==='done').length;
+  const skip=state.filter(s=>s.status==='skip').length;
+  return {done, skip, invested:done*PER, remaining:TOTAL-done*PER};
+}
+
+function updateHeader() {
+  const {done,skip,invested,remaining} = stats();
+  const pct = Math.round(done/COUNT*100);
+  document.getElementById('prog-pct').textContent  = pct+'%';
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-sub').textContent  = done+' / '+COUNT+'회 완료 · 투자금 $'+invested.toLocaleString()+' · 잔여 $'+remaining.toLocaleString();
+  document.getElementById('s-done').innerHTML      = done+'<span style="font-size:13px;color:var(--text3)">/' +COUNT+'</span>';
+  document.getElementById('s-invested').textContent  = '$'+invested.toLocaleString();
+  document.getElementById('s-remaining').textContent = '$'+remaining.toLocaleString();
+  document.getElementById('s-skipped').textContent   = skip;
+  document.getElementById('complete-banner').style.display = done===COUNT ? 'block':'none';
+}
+
+function render() {
+  const wrap = document.getElementById('rows-wrap');
+  wrap.innerHTML = '';
+  let cum = 0;
+
+  state.forEach((item, idx) => {
+    if (item.status==='done') cum += PER;
+    const isNext = item.status==='wait' && state.slice(0,idx).every(s=>s.status!=='wait');
+
+    const row = document.createElement('div');
+    row.className = 'row'+(item.status==='done'?' is-done':'')+(isNext?' is-next':'');
+
+    // 날짜: 완료/건너뜀만 표시
+    const dateStr = (item.status==='done'||item.status==='skip') ? item.date : '—';
+
+    // 조건 텍스트
+    let cond = '';
+    if      (item.status==='done') cond = '<span style="font-family:var(--mono);font-size:11px;color:var(--green)">F&amp;G ≤'+FG+' ✓</span>';
+    else if (item.status==='skip') cond = '<span style="font-family:var(--mono);font-size:11px;color:var(--text3)">F&amp;G >'+FG+'</span>';
+    else if (isNext)               cond = '<span style="font-family:var(--mono);font-size:11px;color:var(--blue)">F&amp;G ≤'+FG+' 확인 후 주문</span>';
+    else                           cond = '<span style="font-family:var(--mono);font-size:11px;color:var(--text3)">F&amp;G ≤'+FG+'</span>';
+
+    const amt = item.status!=='skip'
+      ? '<span style="color:var(--blue)">$'+PER.toLocaleString()+'</span>'
+      : '<span style="color:var(--text3)">—</span>';
+
+    const cumStr = item.status==='done'
+      ? '<span style="color:var(--text2)">$'+cum.toLocaleString()+'</span>'
+      : '<span style="color:var(--text3)">—</span>';
+
+    let badge = '';
+    if      (item.status==='done') badge='<span class="badge badge-done">✓ 완료</span>';
+    else if (item.status==='skip') badge='<span class="badge badge-skip">건너뜀</span>';
+    else if (isNext)               badge='<span class="badge badge-next">● 대기</span>';
+    else                           badge='<span class="badge badge-wait">예정</span>';
+
+    let action = '';
+    if (isNext) {
+      action = '<div class="btn-group"><button class="btn-buy" onclick="done_'+idx+'()">매수완료</button><button class="btn-skip" onclick="skip_'+idx+'()">건너뜀</button></div>';
+      window['done_'+idx] = () => { markDone(idx); };
+      window['skip_'+idx] = () => { markSkip(idx); };
+    } else if (item.status==='done'||item.status==='skip') {
+      action = '<button class="btn-undo" onclick="undo_'+idx+'()">취소</button>';
+      window['undo_'+idx] = () => { undoItem(idx); };
+    }
+
+    row.innerHTML =
+      '<div class="row-n">'+item.n+'</div>'+
+      '<div class="row-date">'+dateStr+'</div>'+
+      '<div>'+cond+'</div>'+
+      '<div class="row-amt">'+amt+'</div>'+
+      '<div class="row-cum">'+cumStr+'</div>'+
+      '<div style="text-align:center">'+badge+'</div>'+
+      '<div class="action-cell">'+action+'</div>';
+
+    wrap.appendChild(row);
+  });
+  updateHeader();
+}
+
+function markDone(idx) { state[idx]={...state[idx],status:'done',date:today(),fg:'≤'+FG}; save(state); render(); }
+function markSkip(idx) { state[idx]={...state[idx],status:'skip',date:today(),fg:'>'+FG}; save(state); render(); }
+function undoItem(idx) { state[idx]={...state[idx],status:'wait',date:'',fg:''}; save(state); render(); }
+function resetAll() {
+  if (!confirm('진행 기록을 모두 초기화할까요?')) return;
+  state = mkRows(); save(state); render();
+}
+
+// 입력 시 실시간 미리보기
+['inp-total','inp-count'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const t = parseInt(document.getElementById('inp-total').value)||0;
+    const c = parseInt(document.getElementById('inp-count').value)||1;
+    document.getElementById('per-display').textContent = '회당 매수금액: $'+Math.round(t/c).toLocaleString();
+  });
+});
+
+updateLabels(); render();
+</script>
+</body>
+</html>
