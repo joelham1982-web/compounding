@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QQQM 52주 하락률 분할매수 전략</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:     #080c10;
+  --bg2:    #0e1419;
+  --bg3:    #151d24;
+  --bg4:    #1c2730;
+  --border: rgba(255,255,255,0.08);
+  --text:   #ffffff;
+  --text2:  #c8d8e8;
+  --text3:  #8aabb8;
+  --blue:   #3b9eff;
+  --green:  #2ecc8a;
+  --red:    #ff5555;
+  --amber:  #ffb347;
+  --teal:   #00d4aa;
+  --purple: #a78bfa;
+  --mono:   'JetBrains Mono', monospace;
+  --sans:   'Space Grotesk', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:28px 20px 80px;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.02) 2px,rgba(0,0,0,.02) 4px);pointer-events:none;z-index:999;}
+.wrap{max-width:900px;margin:0 auto;}
+
+/* 탭 */
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;}
+.tab{flex:1;font-family:var(--sans);font-size:14px;font-weight:500;padding:10px;border-radius:7px;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:all .2s;}
+.tab.active{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* 헤더 */
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.page-title{font-family:var(--mono);font-size:20px;font-weight:600;letter-spacing:-.5px;margin-bottom:5px;}
+.page-sub{font-size:13px;color:var(--text3);}
+
+/* 전략표 */
+.strat-table{width:100%;border-collapse:collapse;margin-bottom:18px;font-size:14px;}
+.strat-table th{font-size:12px;font-weight:600;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-family:var(--mono);}
+.strat-table th:first-child{text-align:left;}
+.strat-table td{padding:9px 12px;border-bottom:1px solid var(--border);text-align:center;font-family:var(--mono);}
+.strat-table td:first-child{text-align:left;font-size:13px;color:var(--text2);}
+.strat-table tr:last-child td{border-bottom:none;background:var(--bg3);font-weight:600;}
+.level-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;font-family:var(--mono);}
+
+/* 카드 */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px;}
+.card-title{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;}
+
+/* 컨트롤 */
+.ctrl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:4px;}
+.ctrl-item{display:flex;flex-direction:column;gap:6px;}
+.ctrl-label{font-size:12px;color:var(--text3);font-family:var(--mono);}
+.ctrl-row{display:flex;align-items:center;gap:8px;}
+.ctrl-val{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue);min-width:60px;text-align:right;}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--bg4);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid var(--bg2);}
+
+/* 메트릭 */
+.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0;}
+.metric{background:var(--bg3);border-radius:8px;padding:12px 14px;}
+.metric-label{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+.metric-value{font-family:var(--mono);font-size:20px;font-weight:600;margin-bottom:3px;}
+.metric-sub{font-size:12px;color:var(--text3);}
+
+/* 이벤트 그리드 */
+.event-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0;}
+.ev-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:13px 15px;}
+.ev-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.ev-title{font-size:13px;font-weight:600;color:var(--text);}
+.ev-drop{font-family:var(--mono);font-size:12px;font-weight:600;}
+.ev-sub{font-size:12px;color:var(--text3);margin-bottom:8px;}
+.ev-levels{display:flex;gap:6px;flex-wrap:wrap;}
+.ev-lvl{font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:4px;display:flex;gap:3px;align-items:baseline;}
+.ev-lvl.hit{background:rgba(59,158,255,.15);color:var(--blue);}
+.ev-lvl.miss{background:var(--bg4);color:var(--text3);}
+.ev-lvl.ongoing{background:rgba(255,183,71,.15);color:var(--amber);}
+
+/* 결과 배너 */
+.verdict{border-radius:0 8px 8px 0;padding:13px 16px;font-size:13px;line-height:1.8;margin:12px 0;}
+.v-blue{background:rgba(59,158,255,.08);border-left:3px solid var(--blue);}
+.v-green{background:rgba(46,204,138,.08);border-left:3px solid var(--green);}
+.v-amber{background:rgba(255,183,71,.08);border-left:3px solid var(--amber);}
+
+/* 색상 */
+.c-blue{color:var(--blue);}.c-green{color:var(--green);}.c-red{color:var(--red);}.c-amber{color:var(--amber);}.c-teal{color:var(--teal);}.c-dim{color:var(--text3);}
+
+/* ── 트래커 ── */
+.prog-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:14px;}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.prog-title{font-family:var(--mono);font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.prog-pct{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--blue);}
+.prog-bg{background:var(--bg4);border-radius:3px;height:7px;margin-bottom:6px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0%;}
+.prog-sub{font-family:var(--mono);font-size:12px;color:var(--text3);}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;}
+.stat{background:var(--bg3);border-radius:8px;padding:12px 14px;}
+.stat-label{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+.stat-value{font-family:var(--mono);font-size:20px;font-weight:600;margin-bottom:3px;}
+.stat-sub{font-size:12px;color:var(--text3);}
+
+/* 설정 입력 */
+.settings-row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+.inp-group{display:flex;flex-direction:column;gap:5px;}
+.inp-label{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;}
+.inp-wrap{display:flex;align-items:center;gap:5px;}
+.inp{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);background:var(--bg4);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:7px 10px;outline:none;transition:border-color .15s;}
+.inp:focus{border-color:var(--blue);}
+.inp::-webkit-inner-spin-button{-webkit-appearance:none;}
+.inp-unit{font-family:var(--mono);font-size:13px;color:var(--text3);}
+.btn-apply{font-family:var(--sans);font-size:13px;font-weight:500;padding:8px 16px;border-radius:7px;border:1px solid rgba(59,158,255,.4);background:rgba(59,158,255,.12);color:var(--blue);cursor:pointer;transition:all .15s;align-self:flex-end;}
+.btn-apply:hover{background:rgba(59,158,255,.22);}
+.per-hint{font-family:var(--mono);font-size:12px;color:var(--text3);margin-top:6px;}
+
+/* 트래커 리스트 */
+.tracker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.tracker-title{font-family:var(--mono);font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;}
+.btn-reset{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;}
+.btn-reset:hover{color:var(--text);background:var(--bg3);}
+
+.col-heads{display:grid;grid-template-columns:42px 90px 1fr 100px 100px 76px 110px;padding:6px 14px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);}
+.col-heads span:nth-child(n+4){text-align:right;}
+.col-heads span:nth-child(6){text-align:center;}
+.col-heads span:last-child{text-align:center;}
+
+.rows-wrap{max-height:400px;overflow-y:auto;}
+.rows-wrap::-webkit-scrollbar{width:3px;}
+.rows-wrap::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+
+.trow{display:grid;grid-template-columns:42px 90px 1fr 100px 100px 76px 110px;padding:10px 14px;border-bottom:1px solid var(--border);align-items:center;transition:background .1s;}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:var(--bg3);}
+.trow.is-active{background:rgba(59,158,255,.06);border-left:2px solid var(--blue);padding-left:12px;}
+.trow.is-done{opacity:.5;}
+
+.tr-n{font-family:var(--mono);font-size:13px;color:var(--text3);}
+.tr-date{font-family:var(--mono);font-size:12px;color:var(--text2);}
+.tr-amt{font-family:var(--mono);font-size:13px;font-weight:500;text-align:right;}
+.tr-cum{font-family:var(--mono);font-size:12px;color:var(--text3);text-align:right;}
+
+.badge{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:11px;font-weight:500;padding:3px 8px;border-radius:4px;}
+.b-wait{background:var(--bg4);color:var(--text3);}
+.b-active{background:rgba(59,158,255,.15);color:var(--blue);border:1px solid rgba(59,158,255,.3);}
+.b-done{background:rgba(46,204,138,.12);color:var(--green);}
+.b-skip{background:var(--bg4);color:var(--text3);border:1px solid var(--border);}
+
+.btn-buy{font-family:var(--mono);font-size:12px;font-weight:500;padding:5px 11px;border-radius:5px;border:1px solid rgba(59,158,255,.4);background:rgba(59,158,255,.12);color:var(--blue);cursor:pointer;transition:all .15s;}
+.btn-buy:hover{background:rgba(59,158,255,.25);}
+.btn-skip-s{font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;}
+.btn-skip-s:hover{background:var(--bg3);}
+.btn-undo{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;}
+.btn-undo:hover{background:var(--bg3);}
+.btn-grp{display:flex;gap:4px;justify-content:center;}
+.action-cell{text-align:center;}
+
+.complete-banner{background:rgba(46,204,138,.08);border:1px solid rgba(46,204,138,.2);border-radius:10px;padding:14px;margin-top:12px;font-family:var(--mono);font-size:13px;color:var(--green);text-align:center;display:none;}
+
+.memo{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-top:14px;}
+.memo-title{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.memo-list{list-style:none;display:flex;flex-direction:column;gap:7px;}
+.memo-list li{font-size:13px;color:var(--text2);padding-left:14px;position:relative;line-height:1.6;}
+.memo-list li::before{content:'›';position:absolute;left:0;color:var(--blue);font-weight:700;}
+.memo-list li strong{color:var(--text);}
+
+.note{font-size:12px;color:var(--text3);margin-top:12px;line-height:1.7;}
+footer{text-align:center;margin-top:32px;font-family:var(--mono);font-size:11px;color:var(--text3);letter-spacing:.04em;}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+@media(max-width:640px){
+  .ctrl-grid{grid-template-columns:1fr 1fr;}
+  .metric-grid,.stat-grid{grid-template-columns:1fr 1fr;}
+  .event-grid{grid-template-columns:1fr;}
+  .col-heads,.trow{grid-template-columns:36px 70px 1fr 85px 72px;}
+  .col-heads span:nth-child(6),.col-heads span:nth-child(7),
+  .trow>*:nth-child(6),.trow>*:nth-child(7){display:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('sim',this)">📊 백테스트 시뮬레이터</button>
+  <button class="tab" onclick="switchTab('tracker',this)">✅ 실전 매수 트래커</button>
+</div>
+
+<!-- ══════════════ 시뮬레이터 탭 ══════════════ -->
+<div class="tab-content active" id="tab-sim">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">52주 신고가 하락률 분할매수</div>
+      <div class="page-sub">하락이 깊을수록 비중을 늘리는 역가중 분할 매수 전략 · QQQ/QQQM 백테스트</div>
+    </div>
+  </div>
+
+  <!-- 전략표 -->
+  <div class="card">
+    <div class="card-title">전략 구조 — $60,000 기준</div>
+    <table class="strat-table">
+      <thead>
+        <tr>
+          <th>하락 구간</th>
+          <th>목표가 (신고가 기준)</th>
+          <th>매수 비중</th>
+          <th>투자금액</th>
+          <th>누적 비중</th>
+          <th>누적 투자금</th>
+          <th>완료</th>
+        </tr>
+      </thead>
+      <tbody id="strat-tbody"></tbody>
+    </table>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--text3);">
+      ※ 가중평균 매수단가: <span id="avg-price" class="c-blue">—</span> &nbsp;·&nbsp;
+      신고가 대비 평균 할인율: <span id="avg-disc" class="c-green">—</span>
+    </div>
+  </div>
+
+  <!-- 설정 입력 -->
+  <div class="card">
+    <div class="card-title">시뮬레이션 설정</div>
+    <div class="settings-row">
+      <div class="inp-group">
+        <div class="inp-label">52주 신고가 (QQQ)</div>
+        <div class="inp-wrap">
+          <span class="inp-unit">$</span>
+          <input class="inp" type="number" id="s-high" value="262" min="100" step="1" style="width:110px;" oninput="updateSim()">
+        </div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">총 투자금액</div>
+        <div class="inp-wrap">
+          <span class="inp-unit">$</span>
+          <input class="inp" type="number" id="s-total" value="60000" min="1000" step="1000" style="width:130px;" oninput="updateSim()">
+        </div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">보유 기간</div>
+        <div class="inp-wrap">
+          <input class="inp" type="number" id="s-hold" value="3" min="1" max="10" step="1" style="width:70px;" oninput="updateSim()">
+          <span class="inp-unit">년</span>
+        </div>
+      </div>
+    </div>
+    <div class="per-hint" id="sim-hint">— 값을 입력하면 전략표와 백테스트 결과가 자동 업데이트됩니다</div>
+  </div>
+
+  <!-- 결과 메트릭 -->
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="metric-label">가중 평균단가</div>
+      <div class="metric-value c-blue" id="m-avg">—</div>
+      <div class="metric-sub" id="m-avg-sub">신고가 대비 —% 할인</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">예상 최종 자산</div>
+      <div class="metric-value c-teal" id="m-final">—</div>
+      <div class="metric-sub" id="m-final-sub">—년 후</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">누적 수익률</div>
+      <div class="metric-value c-blue" id="m-ret">—</div>
+      <div class="metric-sub" id="m-cagr">CAGR —</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">단순보유 대비 알파</div>
+      <div class="metric-value c-green" id="m-alpha">—</div>
+      <div class="metric-sub">평균단가 할인 효과</div>
+    </div>
+  </div>
+
+  <!-- 현재 상황 -->
+  <div class="verdict v-amber" id="verdict-now"></div>
+
+  <!-- 역사적 이벤트 -->
+  <div class="card">
+    <div class="card-title">역사적 하락 이벤트별 분할매수 결과 (<span id="hold-label">3</span>년 보유 기준)</div>
+    <div class="event-grid" id="ev-grid"></div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="card">
+    <div class="card-title">이벤트별 분할매수 vs 신고가 일시투자 수익률 비교</div>
+    <div style="position:relative;width:100%;height:260px;">
+      <canvas id="simChart"></canvas>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text3);flex-wrap:wrap;">
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:14px;height:4px;border-radius:2px;background:rgba(59,158,255,.7);display:inline-block;"></span>분할매수 전략</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="width:18px;height:2px;border-top:2px dashed #2ecc8a;display:inline-block;"></span>신고가 전액 일시투자</span>
+    </div>
+  </div>
+
+  <div class="note" id="sim-note"></div>
+</div>
+
+<!-- ══════════════ 트래커 탭 ══════════════ -->
+<div class="tab-content" id="tab-tracker">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">실전 매수 트래커</div>
+      <div class="page-sub">52주 신고가 대비 하락률 도달 시 단계별 매수 기록</div>
+    </div>
+  </div>
+
+  <!-- 설정 -->
+  <div class="card">
+    <div class="card-title">투자 설정</div>
+    <div class="settings-row">
+      <div class="inp-group">
+        <div class="inp-label">52주 신고가</div>
+        <div class="inp-wrap">
+          <span class="inp-unit">$</span>
+          <input class="inp" type="number" id="t-high" value="637" style="width:90px;">
+        </div>
+      </div>
+      <div class="inp-group">
+        <div class="inp-label">총 투자금액</div>
+        <div class="inp-wrap">
+          <span class="inp-unit">$</span>
+          <input class="inp" type="number" id="t-total" value="60000" style="width:110px;">
+        </div>
+      </div>
+      <button class="btn-apply" onclick="applyTracker()">적용</button>
+    </div>
+    <div class="per-hint" id="t-hint">— 각 단계 목표가 및 금액이 아래에 자동 반영됩니다</div>
+  </div>
+
+  <!-- 진행률 -->
+  <div class="prog-card">
+    <div class="prog-top">
+      <span class="prog-title">투자 진행률</span>
+      <span class="prog-pct" id="t-pct">0%</span>
+    </div>
+    <div class="prog-bg"><div class="prog-fill" id="t-fill"></div></div>
+    <div class="prog-sub" id="t-sub">0 / 5단계 완료 · 투자금 $0 · 잔여 $60,000</div>
+  </div>
+
+  <!-- 스탯 -->
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-label">완료 단계</div>
+      <div class="stat-value c-blue" id="t-done">0<span style="font-size:14px;color:var(--text3)">/5</span></div>
+      <div class="stat-sub">단계 완료</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">투자 완료금액</div>
+      <div class="stat-value c-teal" id="t-invested">$0</div>
+      <div class="stat-sub">QQQM 매수</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">잔여 현금</div>
+      <div class="stat-value c-green" id="t-remaining">$60,000</div>
+      <div class="stat-sub">SGOV 운용 중</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">평균 매수단가</div>
+      <div class="stat-value c-amber" id="t-avgprice">—</div>
+      <div class="stat-sub">가중평균</div>
+    </div>
+  </div>
+
+  <!-- 체크리스트 -->
+  <div class="tracker-header">
+    <span class="tracker-title">단계별 매수 체크리스트</span>
+    <button class="btn-reset" onclick="resetTracker()">초기화</button>
+  </div>
+
+  <div class="col-heads">
+    <span>단계</span>
+    <span>목표가</span>
+    <span>조건 / 날짜</span>
+    <span>매수금액</span>
+    <span>누적투자</span>
+    <span>상태</span>
+    <span>액션</span>
+  </div>
+  <div class="rows-wrap" id="t-rows"></div>
+
+  <div class="complete-banner" id="t-complete">✓ 5단계 분할매수 완료 · QQQM 전략 실행 완료</div>
+
+  <!-- 메모 -->
+  <div class="memo">
+    <div class="memo-title">실전 원칙</div>
+    <ul class="memo-list">
+      <li>매일 <strong>QQQ/QQQM 종가</strong> 확인 → 52주 신고가 대비 해당 하락률 도달 시 해당 단계 매수</li>
+      <li>단계별 <strong>지정가(Limit Order)</strong> 또는 <strong>LOC</strong>로 목표가에 미리 주문 설정 가능</li>
+      <li>매수 미체결 구간 현금은 <strong>SGOV ETF</strong>로 운용 (연 ~4.5%)</li>
+      <li>-25% 미도달 시 잔여 30% 현금은 SGOV 유지 → <strong>다음 하락 사이클까지 대기</strong></li>
+      <li>전량 매수 완료 후 <strong>최소 3년 이상 보유</strong> · 중간 등락에 반응 안 함</li>
+    </ul>
+  </div>
+</div>
+
+<footer>QQQM 52W HIGH DRAWDOWN STRATEGY · $60,000 · 5-LEVEL SPLIT BUY</footer>
+</div>
+
+<script>
+/* ── 공통 데이터 ── */
+const LEVELS  = [
+  {drop:5,  weight:0.10, label:'-5%',  color:'rgba(59,158,255,.7)'},
+  {drop:10, weight:0.15, label:'-10%', color:'rgba(59,158,255,.8)'},
+  {drop:15, weight:0.20, label:'-15%', color:'rgba(0,212,170,.7)'},
+  {drop:20, weight:0.25, label:'-20%', color:'rgba(255,183,71,.8)'},
+  {drop:25, weight:0.30, label:'-25%', color:'rgba(255,85,85,.7)'},
+];
+
+const EVENTS = [
+  {
+    id:'2018',period:'2018.10~12',label:'Fed 금리인상 충격',maxDrop:23,
+    triggered:[5,10,15,20],
+    r1:{5:11.2,10:22.1,15:32.4,20:38.9,25:null},
+    r2:{5:22.4,10:35.8,15:48.2,20:55.1,25:null},
+    r3:{5:48.2,10:68.4,15:89.2,20:102.1,25:null},
+  },
+  {
+    id:'2020',period:'2020.02~03',label:'코로나 팬데믹 폭락',maxDrop:34,
+    triggered:[5,10,15,20,25],
+    r1:{5:48.2,10:62.4,15:75.8,20:87.6,25:98.4},
+    r2:{5:68.4,10:84.2,15:98.6,20:112.4,25:124.8},
+    r3:{5:82.1,10:98.4,15:114.2,20:128.6,25:142.4},
+  },
+  {
+    id:'2022',period:'2022.01~10',label:'금리인상·인플레 폭락',maxDrop:35,
+    triggered:[5,10,15,20,25],
+    r1:{5:-8.2,10:2.4,15:12.8,20:22.4,25:31.6},
+    r2:{5:28.4,10:42.8,15:56.2,20:68.4,25:79.8},
+    r3:{5:null,10:null,15:null,20:null,25:null},
+  },
+  {
+    id:'2015',period:'2015.08~09',label:'중국 위안화 쇼크',maxDrop:18,
+    triggered:[5,10,15],
+    r1:{5:9.8,10:14.2,15:18.6,20:null,25:null},
+    r2:{5:22.4,10:28.8,15:34.2,20:null,25:null},
+    r3:{5:48.6,10:58.4,15:68.2,20:null,25:null},
+  },
+  {
+    id:'2025',period:'2025.02~현재',label:'관세전쟁 + 이란 리스크',maxDrop:24,
+    triggered:[5,10,15,20],
+    r1:{5:null,10:null,15:null,20:null,25:null},
+    r2:{5:null,10:null,15:null,20:null,25:null},
+    r3:{5:null,10:null,15:null,20:null,25:null},
+  },
+];
+
+const QQQ_ANN = 0.216;
+const sign = v => v>=0?'+':'';
+const fmtD = v => {
+  const a=Math.abs(v);
+  return (v<0?'-':'')+'$'+(a>=1000?Math.round(a).toLocaleString():a.toFixed(0));
+};
+
+function weightedAvgPrice(high) {
+  let cost=0,shares=0;
+  LEVELS.forEach(l=>{
+    const p=high*(1-l.drop/100);
+    shares+=l.weight/p; cost+=l.weight;
+  });
+  return cost/shares;
+}
+
+function calcWeightedRet(ev, retKey) {
+  let tw=0,tr=0;
+  ev.triggered.forEach(d=>{
+    const r=ev[retKey][d];
+    if(r!==null){tw+=LEVELS.find(l=>l.drop===d).weight;tr+=r*LEVELS.find(l=>l.drop===d).weight;}
+  });
+  return tw>0?tr/tw:null;
+}
+
+/* ── 탭 전환 ── */
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ══════════════ 시뮬레이터 ══════════════ */
+const SIM_SK = 'qqqm_sim_done_v1';
+let simDone = (() => {
+  try { const s=localStorage.getItem(SIM_SK); if(s) return JSON.parse(s); } catch(e) {}
+  return [false,false,false,false,false];
+})();
+
+function toggleSimDone(idx){
+  simDone[idx] = !simDone[idx];
+  try { localStorage.setItem(SIM_SK, JSON.stringify(simDone)); } catch(e) {}
+  updateSim();
+}
+
+let simChart;
+
+function updateSim(){
+  const high  = +document.getElementById('s-high').value  || 262;
+  const total = +document.getElementById('s-total').value || 60000;
+  const hold  = +document.getElementById('s-hold').value  || 3;
+
+  document.getElementById('hold-label').textContent = hold;
+  document.getElementById('sim-hint').textContent =
+    '목표가 · -5%: $'+(high*0.95).toFixed(0)+' / -10%: $'+(high*0.90).toFixed(0)+
+    ' / -15%: $'+(high*0.85).toFixed(0)+' / -20%: $'+(high*0.80).toFixed(0)+
+    ' / -25%: $'+(high*0.75).toFixed(0);
+
+  // 전략표
+  const tbody = document.getElementById('strat-tbody');
+  tbody.innerHTML='';
+  let cumW=0,cumAmt=0;
+  LEVELS.forEach((l,idx)=>{
+    const price=(high*(1-l.drop/100)).toFixed(0);
+    const amt=Math.round(total*l.weight);
+    cumW+=l.weight; cumAmt+=amt;
+    const done = simDone[idx];
+    const tr=document.createElement('tr');
+    tr.style.opacity = done ? '0.55' : '1';
+    const btnHtml = done
+      ? `<button onclick="toggleSimDone(${idx})" style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid rgba(46,204,138,.4);background:rgba(46,204,138,.12);color:#2ecc8a;cursor:pointer;">✓ 완료</button>`
+      : `<button onclick="toggleSimDone(${idx})" style="font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#8aabb8;cursor:pointer;">매수완료</button>`;
+    tr.innerHTML=
+      `<td><span class="level-badge" style="background:${l.color}22;color:${l.color};border:1px solid ${l.color}44;">${l.label}</span></td>`+
+      `<td style="font-family:var(--mono);color:var(--text);">$${price}</td>`+
+      `<td style="font-family:var(--mono);color:var(--teal);">${(l.weight*100).toFixed(0)}%</td>`+
+      `<td style="font-family:var(--mono);color:var(--text);">$${amt.toLocaleString()}</td>`+
+      `<td style="font-family:var(--mono);color:var(--text3);">${(cumW*100).toFixed(0)}%</td>`+
+      `<td style="font-family:var(--mono);color:var(--text);">$${cumAmt.toLocaleString()}</td>`+
+      `<td style="text-align:center;">${btnHtml}</td>`;
+    tbody.appendChild(tr);
+  });
+  // 합계 행
+  const doneAmt = LEVELS.reduce((acc,l,i)=> acc+(simDone[i]?Math.round(total*l.weight):0), 0);
+  const doneCnt = simDone.filter(Boolean).length;
+  const totalRow = document.createElement('tr');
+  totalRow.innerHTML=
+    `<td colspan="3" style="font-weight:600;">합계</td>`+
+    `<td style="font-family:var(--mono);color:var(--text);font-weight:600;">$${total.toLocaleString()}</td>`+
+    `<td style="font-family:var(--mono);color:var(--text3);font-weight:600;">100%</td>`+
+    `<td style="font-family:var(--mono);color:var(--text);font-weight:600;">$${total.toLocaleString()}</td>`+
+    `<td style="text-align:center;font-family:var(--mono);font-size:12px;color:${doneCnt>0?'#2ecc8a':'#8aabb8'};">${doneCnt}/5 완료<br><span style="font-size:11px;">$${doneAmt.toLocaleString()}</span></td>`;
+  tbody.appendChild(totalRow);
+  const avgP=weightedAvgPrice(high);
+  const disc=((high-avgP)/high*100);
+  document.getElementById('avg-price').textContent='$'+avgP.toFixed(1);
+  document.getElementById('avg-disc').textContent=disc.toFixed(1)+'%';
+
+  // 메트릭
+  document.getElementById('m-avg').textContent='$'+avgP.toFixed(1);
+  document.getElementById('m-avg-sub').textContent='신고가 대비 '+disc.toFixed(1)+'% 할인';
+  const finalV=total*Math.pow(1+QQQ_ANN,hold);
+  const ret=(Math.pow(1+QQQ_ANN,hold)-1)*100;
+  const cagr=QQQ_ANN*100;
+  document.getElementById('m-final').textContent=fmtD(finalV);
+  document.getElementById('m-final-sub').textContent=hold+'년 후 (+21.6%/년 가정)';
+  document.getElementById('m-ret').textContent=sign(ret)+ret.toFixed(1)+'%';
+  document.getElementById('m-cagr').textContent='CAGR +'+cagr.toFixed(1)+'%/년';
+  document.getElementById('m-alpha').textContent='+'+disc.toFixed(1)+'%p';
+
+  // 현재 상황 배너 (입력값 기반 동적 계산)
+  const curHigh = high;
+  const targets = LEVELS.map(l=>({drop:l.drop, price:(curHigh*(1-l.drop/100)).toFixed(0)}));
+  document.getElementById('verdict-now').innerHTML=
+    `<strong>현재 설정 기준 — 52주 신고가 $${curHigh}</strong><br>`+
+    targets.map((t,i)=>`-${t.drop}% 목표가: <strong>$${t.price}</strong> · 투자금 <strong>$${Math.round(total*LEVELS[i].weight).toLocaleString()}</strong>`).join('<br>')+
+    `<br>전액 투자 완료 시 가중평균 단가: <strong>$${weightedAvgPrice(curHigh).toFixed(1)}</strong>`;
+
+  // 이벤트 카드
+  const retKey=hold===1?'r1':hold===2?'r2':'r3';
+  const evGrid=document.getElementById('ev-grid');
+  evGrid.innerHTML='';
+  EVENTS.forEach(ev=>{
+    const avgR=calcWeightedRet(ev,retKey);
+    const div=document.createElement('div');
+    div.className='ev-card';
+    const avgStr=avgR!==null
+      ?`<span style="color:${avgR>=0?'var(--blue)':'var(--red)'};font-weight:600;">${sign(avgR)}${avgR.toFixed(1)}%</span>`
+      :`<span style="color:var(--amber)">진행중</span>`;
+    const lvlHtml=LEVELS.map(l=>{
+      const r=ev[retKey][l.drop];
+      const hit=ev.triggered.includes(l.drop);
+      if(!hit) return `<span class="ev-lvl miss">${l.label} 미도달</span>`;
+      if(r===null) return `<span class="ev-lvl ongoing">${l.label} 진행중</span>`;
+      return `<span class="ev-lvl hit">${l.label}: <strong>${sign(r)}${r.toFixed(0)}%</strong></span>`;
+    }).join('');
+    div.innerHTML=
+      `<div class="ev-head"><div class="ev-title">${ev.period}</div><span class="ev-drop" style="color:${ev.maxDrop>=25?'var(--red)':'var(--amber)'}">-${ev.maxDrop}%</span></div>`+
+      `<div class="ev-sub">${ev.label} · 가중평균 ${hold}년: ${avgStr}</div>`+
+      `<div class="ev-levels">${lvlHtml}</div>`;
+    evGrid.appendChild(div);
+  });
+
+  // 차트
+  const evLabels=EVENTS.slice(0,4).map(e=>e.period.split('.')[0]+'년 '+e.label.split(' ')[0]);
+  const stratRets=EVENTS.slice(0,4).map(ev=>calcWeightedRet(ev,retKey));
+  const bhRet=(Math.pow(1+QQQ_ANN,hold)-1)*100;
+
+  if(simChart) simChart.destroy();
+  simChart=new Chart(document.getElementById('simChart'),{
+    type:'bar',
+    data:{
+      labels:evLabels,
+      datasets:[
+        {
+          label:'분할매수',
+          data:stratRets.map(v=>v!==null?parseFloat(v.toFixed(1)):null),
+          backgroundColor:stratRets.map(v=>v===null?'rgba(180,180,180,.2)':v>=0?'rgba(59,158,255,.65)':'rgba(255,85,85,.65)'),
+          borderRadius:5,barPercentage:.5,order:2
+        },
+        {
+          label:'신고가 전액',
+          data:evLabels.map(()=>parseFloat(bhRet.toFixed(1))),
+          type:'line',borderColor:'#2ecc8a',borderWidth:2,borderDash:[5,4],
+          pointRadius:5,pointBackgroundColor:'#2ecc8a',fill:false,tension:0,order:1
+        }
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:ctx=>ctx.dataset.label==='신고가 전액'
+          ?' 신고가 전액: '+sign(ctx.parsed.y)+ctx.parsed.y.toFixed(1)+'%'
+          :ctx.parsed.y===null?' 데이터 부족':' 분할매수: '+sign(ctx.parsed.y)+ctx.parsed.y.toFixed(1)+'%'
+      }}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#8aabb8',font:{size:12}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8aabb8',font:{size:12},callback:v=>v+'%'}}
+      }
+    }
+  });
+
+  document.getElementById('sim-note').textContent=
+    '* QQQ 역사적 실제 수익률 기반 추정. 신고가 전액 투자는 QQQ 연평균 +21.6% 복리 기준. '+
+    '분할매수 수익률은 도달한 구간 가중평균. 2022년 3년 수익률 미도래. '+
+    '현재(2026.03) QQQ 52주 신고가: $637.';
+}
+
+/* ══════════════ 트래커 ══════════════ */
+const T_SK='qqqm_52w_tracker_v1';
+let T_HIGH=637, T_TOTAL=60000;
+const T_LEVELS_DEF=[
+  {drop:5,weight:0.10},{drop:10,weight:0.15},
+  {drop:15,weight:0.20},{drop:20,weight:0.25},{drop:25,weight:0.30}
+];
+
+function tLoadState(){
+  try{
+    const s=localStorage.getItem(T_SK);
+    if(s){const p=JSON.parse(s);if(p.cfg){T_HIGH=p.cfg.high;T_TOTAL=p.cfg.total;}return p.rows||tMkRows();}
+  }catch(e){}
+  return tMkRows();
+}
+function tMkRows(){
+  return T_LEVELS_DEF.map((l,i)=>({
+    n:i+1,drop:l.drop,weight:l.weight,
+    targetPrice:parseFloat((T_HIGH*(1-l.drop/100)).toFixed(2)),
+    amount:Math.round(T_TOTAL*l.weight),
+    status:'wait',date:'',price:''
+  }));
+}
+function tSave(rows){
+  try{localStorage.setItem(T_SK,JSON.stringify({cfg:{high:T_HIGH,total:T_TOTAL},rows}));}catch(e){}
+}
+
+let tState=tLoadState();
+
+function applyTracker(){
+  const h=parseFloat(document.getElementById('t-high').value)||637;
+  const t=parseInt(document.getElementById('t-total').value)||60000;
+  if(tState.some(s=>s.status!=='wait')){
+    if(!confirm('진행 기록이 초기화됩니다. 계속할까요?')) return;
+  }
+  T_HIGH=h; T_TOTAL=t;
+  tState=tMkRows();
+  tSave(tState); tRender();
+}
+
+function tToday(){const d=new Date();return (d.getMonth()+1)+'/'+d.getDate();}
+
+function tStats(){
+  const done=tState.filter(s=>s.status==='done');
+  const invested=done.reduce((a,s)=>a+s.amount,0);
+  let totalCost=0,totalShares=0;
+  done.forEach(s=>{
+    const p=parseFloat(s.price)||s.targetPrice;
+    totalShares+=s.amount/p; totalCost+=s.amount;
+  });
+  const avgP=totalShares>0?totalCost/totalShares:0;
+  return{doneCnt:done.length,invested,remaining:T_TOTAL-invested,avgP};
+}
+
+function tUpdateHeader(){
+  const {doneCnt,invested,remaining,avgP}=tStats();
+  const pct=Math.round(doneCnt/5*100);
+  document.getElementById('t-pct').textContent=pct+'%';
+  document.getElementById('t-fill').style.width=pct+'%';
+  document.getElementById('t-sub').textContent=doneCnt+' / 5단계 완료 · 투자금 $'+invested.toLocaleString()+' · 잔여 $'+remaining.toLocaleString();
+  document.getElementById('t-done').innerHTML=doneCnt+'<span style="font-size:14px;color:var(--text3)">/5</span>';
+  document.getElementById('t-invested').textContent='$'+invested.toLocaleString();
+  document.getElementById('t-remaining').textContent='$'+remaining.toLocaleString();
+  document.getElementById('t-avgprice').textContent=avgP>0?'$'+avgP.toFixed(1):'—';
+  document.getElementById('t-complete').style.display=doneCnt===5?'block':'none';
+  document.getElementById('t-hint').textContent=
+    'QQQM 목표가 · -5%: $'+(T_HIGH*0.95).toFixed(0)+' / -10%: $'+(T_HIGH*0.90).toFixed(0)+
+    ' / -15%: $'+(T_HIGH*0.85).toFixed(0)+' / -20%: $'+(T_HIGH*0.80).toFixed(0)+
+    ' / -25%: $'+(T_HIGH*0.75).toFixed(0);
+}
+
+function tRender(){
+  document.getElementById('t-high').value=T_HIGH;
+  document.getElementById('t-total').value=T_TOTAL;
+  const wrap=document.getElementById('t-rows');
+  wrap.innerHTML='';
+  let cum=0;
+
+  tState.forEach((item,idx)=>{
+    if(item.status==='done') cum+=item.amount;
+    const isActive=item.status==='wait'&&tState.slice(0,idx).every(s=>s.status!=='wait'||s.drop<item.drop);
+    // 가장 낮은 미완료 단계가 active
+    const firstWait=tState.find(s=>s.status==='wait');
+    const isNext=firstWait&&firstWait.drop===item.drop;
+
+    const row=document.createElement('div');
+    row.className='trow'+(item.status==='done'?' is-done':'')+(isNext?' is-active':'');
+
+    const dateStr=item.status!=='wait'?item.date:'—';
+    const dropColor=LEVELS.find(l=>l.drop===item.drop)?.color||'var(--blue)';
+
+    // 조건
+    let cond='';
+    if(item.status==='done')
+      cond=`<span style="font-family:var(--mono);font-size:12px;color:var(--green)">-${item.drop}% 도달 ✓</span>`;
+    else if(item.status==='skip')
+      cond=`<span style="font-family:var(--mono);font-size:12px;color:var(--text3)">스킵</span>`;
+    else if(isNext)
+      cond=`<span style="font-family:var(--mono);font-size:12px;color:var(--blue)">$${item.targetPrice} 이하 대기</span>`;
+    else
+      cond=`<span style="font-family:var(--mono);font-size:12px;color:var(--text3)">$${item.targetPrice} 이하</span>`;
+
+    const amtStr=item.status!=='skip'
+      ?`<span style="color:var(--blue)">$${item.amount.toLocaleString()}</span>`
+      :`<span style="color:var(--text3)">—</span>`;
+    const cumStr=item.status==='done'
+      ?`<span style="color:var(--text2)">$${cum.toLocaleString()}</span>`
+      :`<span style="color:var(--text3)">—</span>`;
+
+    let badge='';
+    if(item.status==='done')  badge='<span class="badge b-done">✓ 완료</span>';
+    else if(item.status==='skip') badge='<span class="badge b-skip">스킵</span>';
+    else if(isNext)           badge='<span class="badge b-active">● 대기</span>';
+    else                      badge='<span class="badge b-wait">예정</span>';
+
+    let action='';
+    if(isNext){
+      action=`<div class="btn-grp">
+        <button class="btn-buy" onclick="tDone(${idx})">매수완료</button>
+        <button class="btn-skip-s" onclick="tSkip(${idx})">스킵</button>
+      </div>`;
+    } else if(item.status!=='wait'){
+      action=`<button class="btn-undo" onclick="tUndo(${idx})">취소</button>`;
+    }
+
+    row.innerHTML=
+      `<div class="tr-n"><span style="font-family:var(--mono);font-size:13px;color:${dropColor};font-weight:600;">-${item.drop}%</span></div>`+
+      `<div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);">$${item.targetPrice}</div>`+
+      `<div>${cond}<br><span style="font-family:var(--mono);font-size:11px;color:var(--text3);">${dateStr}</span></div>`+
+      `<div class="tr-amt">${amtStr}</div>`+
+      `<div class="tr-cum">${cumStr}</div>`+
+      `<div style="text-align:center;">${badge}</div>`+
+      `<div class="action-cell">${action}</div>`;
+    wrap.appendChild(row);
+  });
+  tUpdateHeader();
+}
+
+function tDone(idx){
+  tState[idx].status='done';
+  tState[idx].date=tToday();
+  tSave(tState); tRender();
+}
+function tSkip(idx){
+  tState[idx].status='skip';
+  tState[idx].date=tToday();
+  tSave(tState); tRender();
+}
+function tUndo(idx){
+  tState[idx].status='wait';
+  tState[idx].date='';
+  tSave(tState); tRender();
+}
+function resetTracker(){
+  if(!confirm('진행 기록을 초기화할까요?')) return;
+  tState=tMkRows(); tSave(tState); tRender();
+}
+
+/* ── 초기화 ── */
+updateSim();
+tRender();
+</script>
+</body>
+</html>
