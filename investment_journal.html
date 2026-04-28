@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 포트폴리오 투자 일지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f11;
+  --surface: #16181c;
+  --surface2: #1e2026;
+  --surface3: #252830;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8e9ec;
+  --text2: #8b8d96;
+  --text3: #5a5c66;
+  --accent: #4f8eff;
+  --accent-dim: rgba(79,142,255,0.12);
+  --green: #34c97e;
+  --green-dim: rgba(52,201,126,0.1);
+  --red: #ff5f5f;
+  --red-dim: rgba(255,95,95,0.1);
+  --amber: #f5a623;
+  --amber-dim: rgba(245,166,35,0.1);
+  --mono: 'DM Mono', monospace;
+  --sans: 'Pretendard', -apple-system, sans-serif;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.app { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  padding: 28px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.logo-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+.logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.sidebar-nav { padding: 16px 12px; flex: 1; }
+.nav-group { margin-bottom: 24px; }
+.nav-group-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  transition: all .15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+.sidebar-stats {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+.stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+.stat-row:last-child { margin-bottom: 0; }
+.stat-label { color: var(--text3); }
+.stat-val { font-family: var(--mono); color: var(--text); font-weight: 500; }
+
+/* ── Main ── */
+.main { flex: 1; overflow-x: hidden; }
+.main-header {
+  padding: 28px 32px 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.tab-bar { display: flex; gap: 0; }
+.tab-btn {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text3);
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  font-family: var(--sans);
+}
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.main-content { padding: 28px 32px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Metrics ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+.metric-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
+.metric-value { font-size: 22px; font-weight: 600; font-family: var(--mono); color: var(--text); }
+.metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.metric-card.accent { border-color: rgba(79,142,255,0.2); background: linear-gradient(135deg, var(--surface) 0%, rgba(79,142,255,0.04) 100%); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+/* ── Type toggle ── */
+.type-toggle {
+  display: flex;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.type-btn {
+  padding: 7px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all .18s;
+  color: var(--text3);
+  background: none;
+}
+.type-btn.buy-active { background: var(--green-dim); color: var(--green); }
+.type-btn.sell-active { background: var(--red-dim); color: var(--red); }
+
+/* ── Stock grid ── */
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 0;
+}
+.stock-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all .15s;
+  background: var(--surface2);
+}
+.stock-item:hover { border-color: var(--border2); background: var(--surface3); }
+.stock-item.selected { border-color: var(--accent); background: var(--accent-dim); }
+.si-ticker { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--accent); margin-bottom: 2px; }
+.stock-item.selected .si-ticker { color: #7fb3ff; }
+.si-name { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-sector { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+input, select, textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--sans);
+  width: 100%;
+  transition: border-color .15s;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+select option { background: var(--surface2); }
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235a5c66' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+/* ── Buttons ── */
+.btn-row { display: flex; gap: 10px; margin-top: 18px; }
+.btn {
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all .15s;
+  color: var(--text2);
+  background: var(--surface2);
+}
+.btn:hover { background: var(--surface3); color: var(--text); }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+.btn.primary:hover { background: #6fa0ff; }
+.btn.danger { color: var(--red); border-color: rgba(255,95,95,.2); }
+.btn.danger:hover { background: var(--red-dim); }
+
+/* ── Alert ── */
+.alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+.alert-success { background: var(--green-dim); color: var(--green); border: 1px solid rgba(52,201,126,.2); }
+.alert-error { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,95,95,.2); }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+thead th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 10px 12px; vertical-align: middle; }
+.td-ticker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+.td-muted { color: var(--text2); }
+.td-num { font-family: var(--mono); font-size: 13px; }
+.td-note { font-size: 12px; color: var(--text2); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.del-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: opacity .15s, background .15s;
+}
+tbody tr:hover .del-btn { opacity: 1; }
+.del-btn:hover { background: var(--red-dim); }
+
+/* ── Badge ── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--mono);
+}
+.badge-buy { background: var(--green-dim); color: var(--green); }
+.badge-sell { background: var(--red-dim); color: var(--red); }
+.badge-sector {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: var(--surface3);
+  color: var(--text3);
+}
+
+/* ── Progress ── */
+.prog-item { margin-bottom: 10px; }
+.prog-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
+.prog-bar { height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.prog-fill.filled { background: var(--green); }
+
+/* ── Filter row ── */
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filter-select { width: auto; padding: 6px 28px 6px 10px; font-size: 12px; }
+.filter-label { font-size: 12px; color: var(--text3); }
+
+/* ── Empty ── */
+.empty { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+/* ── Two-col layout for journal panel ── */
+.journal-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+.journal-left { display: flex; flex-direction: column; gap: 16px; }
+.journal-right { display: flex; flex-direction: column; gap: 16px; }
+
+@media (max-width: 1100px) {
+  .journal-layout { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: repeat(2,1fr); }
+  .stock-grid { grid-template-columns: repeat(4,1fr); }
+}
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-header { padding: 20px 16px 0; }
+  .main-content { padding: 20px 16px; }
+  .stock-grid { grid-template-columns: repeat(3,1fr); }
+  .metrics-grid { grid-template-columns: repeat(2,1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">Portfolio</div>
+    <div class="logo-title">AI 투자 일지</div>
+    <div class="logo-sub">매월 $2,000 DCA</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">기록</div>
+      <button class="nav-item active" onclick="switchTab('journal'); setActiveNav(this)">
+        <span class="nav-icon">✦</span> 거래 입력
+      </button>
+      <button class="nav-item" onclick="switchTab('log'); setActiveNav(this)">
+        <span class="nav-icon">≡</span> 일지 목록
+      </button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">분석</div>
+      <button class="nav-item" onclick="switchTab('summary'); setActiveNav(this)">
+        <span class="nav-icon">◈</span> 종목별 현황
+      </button>
+      <button class="nav-item" onclick="switchTab('dca'); setActiveNav(this)">
+        <span class="nav-icon">◎</span> DCA 진행
+      </button>
+    </div>
+  </nav>
+  <div class="sidebar-stats" id="sidebar-stats">
+    <div class="stat-row"><span class="stat-label">총 매수</span><span class="stat-val" id="ss-buy">$0</span></div>
+    <div class="stat-row"><span class="stat-label">총 매도</span><span class="stat-val" id="ss-sell">$0</span></div>
+    <div class="stat-row"><span class="stat-label">순 투자</span><span class="stat-val" id="ss-net">$0</span></div>
+    <div class="stat-row"><span class="stat-label">거래 횟수</span><span class="stat-val" id="ss-cnt">0</span></div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="main-header">
+    <div class="page-title" id="page-title">거래 입력</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('journal')">거래 입력</button>
+      <button class="tab-btn" onclick="switchTab('log')">일지 목록</button>
+      <button class="tab-btn" onclick="switchTab('summary')">종목별 현황</button>
+      <button class="tab-btn" onclick="switchTab('dca')">DCA 진행</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- ── Panel: Journal ── -->
+    <div class="panel active" id="panel-journal">
+      <div class="journal-layout">
+        <div class="journal-left">
+
+          <!-- Type toggle -->
+          <div class="card" style="padding: 16px 22px;">
+            <div class="card-header" style="margin-bottom: 12px;">
+              <span class="card-title">거래 유형</span>
+            </div>
+            <div class="type-toggle">
+              <button class="type-btn buy-active" id="btn-buy" onclick="setType('buy')">매수</button>
+              <button class="type-btn" id="btn-sell" onclick="setType('sell')">매도</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text3)" id="type-hint">DCA 매수 기록 — 월 $2,000 분할 매수</div>
+          </div>
+
+          <!-- Stock select -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">종목 선택</span>
+              <span style="font-size: 12px; color: var(--text3)" id="selected-label">선택된 종목 없음</span>
+            </div>
+            <div class="stock-grid" id="stock-grid"></div>
+          </div>
+
+          <!-- Form -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title" id="form-card-title">매수 정보 입력</span>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">거래일</label>
+                <input type="date" id="f-date">
+              </div>
+              <div class="form-group" id="dca-grp">
+                <label class="form-label">이번 달 DCA 회차</label>
+                <input type="number" id="f-dca" placeholder="예: 1" min="1">
+              </div>
+              <div class="form-group">
+                <label class="form-label" id="amt-label">매수 금액 (USD)</label>
+                <input type="number" id="f-amount" placeholder="2000" min="0" step="0.01">
+              </div>
+              <div class="form-group">
+                <label class="form-label">단가 (USD)</label>
+                <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" oninput="calcQty()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">수량 (주)</label>
+                <input type="number" id="f-qty" placeholder="자동 계산" min="0" step="0.0001" oninput="calcAmt()">
+              </div>
+              <div class="form-group" id="sell-reason-grp" style="display:none">
+                <label class="form-label">매도 사유</label>
+                <select id="f-sell-reason">
+                  <option value="">선택...</option>
+                  <option>목돈 필요 — 긴급</option>
+                  <option>목돈 필요 — 계획</option>
+                  <option>투자 테제 변경</option>
+                  <option>리밸런싱</option>
+                  <option>부분 익절</option>
+                  <option>기타</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">메모 (시장 상황 · 매수 근거 · 감정 기록)</label>
+                <textarea id="f-memo" placeholder="예) 관세 이슈로 반도체 섹터 급락. NVDA -8% 구간에서 DCA 진입. 펀더멘털 변화 없음 확인. 감정 상태: 침착함."></textarea>
+              </div>
+            </div>
+            <div id="form-alert"></div>
+            <div class="btn-row">
+              <button class="btn primary" onclick="saveEntry()">저장하기</button>
+              <button class="btn" onclick="resetForm()">초기화</button>
+            </div>
+          </div>
+
+        </div>
+        <div class="journal-right">
+
+          <!-- Recent entries -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">최근 거래</span>
+              <button class="btn" style="padding:4px 10px;font-size:11px" onclick="switchTab('log')">전체 보기</button>
+            </div>
+            <div id="recent-list">
+              <div class="empty">아직 기록이 없습니다</div>
+            </div>
+          </div>
+
+          <!-- This month -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">이번 달 현황</span>
+            </div>
+            <div id="this-month">
+              <div style="font-size: 12px; color: var(--text3)">이번 달 거래 없음</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: Log ── -->
+    <div class="panel" id="panel-log">
+      <div class="metrics-grid">
+        <div class="metric-card accent">
+          <div class="metric-label">총 매수 금액</div>
+          <div class="metric-value" id="m-buy">$0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">총 매도 금액</div>
+          <div class="metric-value" id="m-sell" style="color: var(--red)">$0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">매수 횟수</div>
+          <div class="metric-value" id="m-buy-cnt">0회</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">매도 횟수</div>
+          <div class="metric-value" id="m-sell-cnt">0회</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">전체 거래 내역</span>
+          <div class="filter-row" style="margin-bottom:0">
+            <select class="filter-select" id="filter-ticker" onchange="renderLog()">
+              <option value="">전체 종목</option>
+            </select>
+            <select class="filter-select" id="filter-type" onchange="renderLog()">
+              <option value="">매수+매도</option>
+              <option value="buy">매수만</option>
+              <option value="sell">매도만</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:90px">날짜</th>
+                <th style="width:68px">종목</th>
+                <th style="width:55px">구분</th>
+                <th style="width:90px">금액</th>
+                <th style="width:78px">단가</th>
+                <th style="width:65px">수량</th>
+                <th>메모</th>
+                <th style="width:36px"></th>
+              </tr>
+            </thead>
+            <tbody id="log-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: Summary ── -->
+    <div class="panel" id="panel-summary">
+      <div class="metrics-grid">
+        <div class="metric-card accent">
+          <div class="metric-label">순 투자 금액</div>
+          <div class="metric-value" id="s-net">$0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">매수 진행 종목</div>
+          <div class="metric-value" id="s-covered">0 / 20</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">총 매수 횟수</div>
+          <div class="metric-value" id="s-buys">0회</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">평균 DCA 간격</div>
+          <div class="metric-value" id="s-interval">-</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 14px">종목별 누적 현황</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:65px">티커</th>
+                <th style="width:100px">종목명</th>
+                <th style="width:90px">매수 금액</th>
+                <th style="width:90px">매도 금액</th>
+                <th style="width:90px">순 투자</th>
+                <th style="width:70px">매수 횟수</th>
+                <th style="width:100px">평균 단가</th>
+                <th>섹터</th>
+              </tr>
+            </thead>
+            <tbody id="summary-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: DCA ── -->
+    <div class="panel" id="panel-dca">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">완료 종목 (1회 이상)</div>
+          <div class="metric-value" id="d-started">0</div>
+          <div class="metric-sub">/ 20 종목</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">이번 달 매수 종목</div>
+          <div class="metric-value" id="d-this-month">0</div>
+          <div class="metric-sub">종목</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">가장 많이 산 종목</div>
+          <div class="metric-value" id="d-most" style="font-size:16px">-</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">아직 미매수 종목</div>
+          <div class="metric-value" id="d-zero">20</div>
+          <div class="metric-sub">종목</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 18px">종목별 DCA 횟수</div>
+        <div id="dca-bars"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<script>
+const STOCKS = [
+  {ticker:'CCJ',name:'카메코',sector:'에너지'},
+  {ticker:'BWXT',name:'BWX테크',sector:'에너지'},
+  {ticker:'SNPS',name:'시놉시스',sector:'설계(EDA)'},
+  {ticker:'CDNS',name:'케이던스',sector:'설계(EDA)'},
+  {ticker:'AEIS',name:'어드밴스드',sector:'부품(Power)'},
+  {ticker:'NVDA',name:'엔비디아',sector:'연산/HBM'},
+  {ticker:'AMD',name:'AMD',sector:'연산/HBM'},
+  {ticker:'AVGO',name:'브로드컴',sector:'연산/HBM'},
+  {ticker:'MSFT',name:'마이크로소프트',sector:'플랫폼'},
+  {ticker:'GOOGL',name:'구글',sector:'플랫폼'},
+  {ticker:'AMZN',name:'아마존',sector:'플랫폼'},
+  {ticker:'AAPL',name:'애플',sector:'플랫폼'},
+  {ticker:'TSLA',name:'테슬라',sector:'물리적 AI'},
+  {ticker:'ASML',name:'ASML',sector:'노광장비'},
+  {ticker:'AMAT',name:'어플라이드',sector:'전공정장비'},
+  {ticker:'LRCX',name:'램리서치',sector:'식각장비'},
+  {ticker:'KLA',name:'KLA',sector:'검사장비'},
+  {ticker:'ONTO',name:'온투',sector:'특수검사'},
+  {ticker:'TER',name:'테라다인',sector:'테스트'},
+  {ticker:'ENTG',name:'인테그리스',sector:'소재/필터'},
+];
+
+let entries = [];
+try { entries = JSON.parse(localStorage.getItem('ij_v2') || '[]'); } catch(e){}
+let currentType = 'buy';
+let selectedTicker = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => '$' + Math.round(n).toLocaleString();
+const fmtDec = n => '$' + Number(n).toFixed(2);
+
+function save() { try { localStorage.setItem('ij_v2', JSON.stringify(entries)); } catch(e){} }
+
+function setActiveNav(el) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function switchTab(t) {
+  const panels = ['journal','log','summary','dca'];
+  const titles = {'journal':'거래 입력','log':'일지 목록','summary':'종목별 현황','dca':'DCA 진행 현황'};
+  panels.forEach(p => {
+    $('panel-'+p).classList.toggle('active', p===t);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', panels[i]===t);
+  });
+  $('page-title').textContent = titles[t] || t;
+  if(t==='log') { renderLog(); updateFilterOptions(); }
+  if(t==='summary') renderSummary();
+  if(t==='dca') renderDCA();
+  updateSidebar();
+}
+
+function setType(t) {
+  currentType = t;
+  $('btn-buy').className = 'type-btn' + (t==='buy' ? ' buy-active' : '');
+  $('btn-sell').className = 'type-btn' + (t==='sell' ? ' sell-active' : '');
+  $('sell-reason-grp').style.display = t==='sell' ? '' : 'none';
+  $('dca-grp').style.display = t==='buy' ? '' : 'none';
+  $('amt-label').textContent = t==='buy' ? '매수 금액 (USD)' : '매도 금액 (USD)';
+  $('form-card-title').textContent = t==='buy' ? '매수 정보 입력' : '매도 정보 입력';
+  $('type-hint').textContent = t==='buy'
+    ? 'DCA 매수 기록 — 월 $2,000 분할 매수'
+    : '매도 기록 — 사유와 함께 기록해두세요';
+}
+
+function buildStockGrid() {
+  $('stock-grid').innerHTML = STOCKS.map(s =>
+    `<div class="stock-item" id="sc-${s.ticker}" onclick="selectStock('${s.ticker}')">
+      <div class="si-ticker">${s.ticker}</div>
+      <div class="si-name">${s.name}</div>
+      <div class="si-sector">${s.sector}</div>
+    </div>`
+  ).join('');
+}
+
+function selectStock(ticker) {
+  selectedTicker = ticker;
+  document.querySelectorAll('.stock-item').forEach(c => c.classList.remove('selected'));
+  $('sc-'+ticker).classList.add('selected');
+  const s = STOCKS.find(x => x.ticker === ticker);
+  $('selected-label').textContent = s ? `${s.ticker} — ${s.name}` : '선택된 종목 없음';
+}
+
+function calcQty() {
+  const amt = parseFloat($('f-amount').value) || 0;
+  const price = parseFloat($('f-price').value) || 0;
+  if(amt > 0 && price > 0) $('f-qty').value = (amt/price).toFixed(4);
+}
+function calcAmt() {
+  const qty = parseFloat($('f-qty').value) || 0;
+  const price = parseFloat($('f-price').value) || 0;
+  if(qty > 0 && price > 0) $('f-amount').value = (qty*price).toFixed(2);
+}
+
+function showAlert(msg, type) {
+  $('form-alert').innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => $('form-alert').innerHTML = '', 3000);
+}
+
+function saveEntry() {
+  if(!selectedTicker) { showAlert('종목을 선택해주세요.', 'error'); return; }
+  const date = $('f-date').value;
+  const amount = parseFloat($('f-amount').value);
+  if(!date) { showAlert('날짜를 입력해주세요.', 'error'); return; }
+  if(!amount || amount <= 0) { showAlert('금액을 입력해주세요.', 'error'); return; }
+  const price = parseFloat($('f-price').value) || null;
+  const qty = parseFloat($('f-qty').value) || null;
+  const memo = $('f-memo').value.trim();
+  const sellReason = currentType==='sell' ? $('f-sell-reason').value : null;
+  const dca = currentType==='buy' ? (parseInt($('f-dca').value) || null) : null;
+  const stock = STOCKS.find(s => s.ticker === selectedTicker);
+  entries.unshift({
+    id: Date.now(),
+    type: currentType,
+    ticker: selectedTicker,
+    name: stock.name,
+    sector: stock.sector,
+    date, amount: +amount.toFixed(2),
+    price: price ? +price.toFixed(2) : null,
+    qty: qty ? +qty.toFixed(4) : null,
+    memo, sellReason, dca
+  });
+  save();
+  updateSidebar();
+  renderRecent();
+  renderThisMonth();
+  showAlert('저장되었습니다!', 'success');
+  resetForm();
+}
+
+function resetForm() {
+  selectedTicker = null;
+  document.querySelectorAll('.stock-item').forEach(c => c.classList.remove('selected'));
+  $('selected-label').textContent = '선택된 종목 없음';
+  $('f-amount').value = currentType==='buy' ? '2000' : '';
+  $('f-price').value = '';
+  $('f-qty').value = '';
+  $('f-memo').value = '';
+  $('f-dca').value = '';
+  if($('f-sell-reason')) $('f-sell-reason').value = '';
+}
+
+function deleteEntry(id) {
+  if(!confirm('이 거래를 삭제할까요?')) return;
+  entries = entries.filter(e => e.id !== id);
+  save();
+  renderLog();
+  renderRecent();
+  renderThisMonth();
+  updateSidebar();
+  updateFilterOptions();
+}
+
+function updateFilterOptions() {
+  const sel = $('filter-ticker');
+  if(!sel) return;
+  const current = sel.value;
+  const tickers = [...new Set(entries.map(e => e.ticker))].sort();
+  sel.innerHTML = '<option value="">전체 종목</option>' + tickers.map(t => `<option ${t===current?'selected':''} value="${t}">${t}</option>`).join('');
+}
+
+function updateSidebar() {
+  const buy = entries.filter(e=>e.type==='buy').reduce((s,e)=>s+e.amount,0);
+  const sell = entries.filter(e=>e.type==='sell').reduce((s,e)=>s+e.amount,0);
+  $('ss-buy').textContent = fmt(buy);
+  $('ss-sell').textContent = fmt(sell);
+  $('ss-net').textContent = fmt(buy-sell);
+  $('ss-cnt').textContent = entries.length + '건';
+}
+
+function renderRecent() {
+  const recent = entries.slice(0,5);
+  if(recent.length === 0) { $('recent-list').innerHTML = '<div class="empty">아직 기록이 없습니다</div>'; return; }
+  $('recent-list').innerHTML = recent.map(e => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span class="badge badge-${e.type}">${e.type==='buy'?'매수':'매도'}</span>
+      <span class="td-ticker" style="font-size:12px;min-width:42px">${e.ticker}</span>
+      <span style="font-size:13px;font-family:var(--mono);color:var(--text)">${fmt(e.amount)}</span>
+      <span style="font-size:11px;color:var(--text3);margin-left:auto">${e.date}</span>
+    </div>`).join('') + (entries.length > 5 ? `<div style="font-size:11px;color:var(--text3);padding-top:8px;text-align:center">+${entries.length-5}건 더</div>` : '');
+}
+
+function renderThisMonth() {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const thisMonth = entries.filter(e => e.date && e.date.startsWith(ym));
+  if(thisMonth.length === 0) { $('this-month').innerHTML = '<div style="font-size:12px;color:var(--text3)">이번 달 거래 없음</div>'; return; }
+  const buyAmt = thisMonth.filter(e=>e.type==='buy').reduce((s,e)=>s+e.amount,0);
+  const sellAmt = thisMonth.filter(e=>e.type==='sell').reduce((s,e)=>s+e.amount,0);
+  const tickers = [...new Set(thisMonth.filter(e=>e.type==='buy').map(e=>e.ticker))];
+  $('this-month').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase">매수</div>
+        <div style="font-family:var(--mono);font-size:16px;color:var(--green)">${fmt(buyAmt)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;text-transform:uppercase">매도</div>
+        <div style="font-family:var(--mono);font-size:16px;color:${sellAmt>0?'var(--red)':'var(--text3)'}">${fmt(sellAmt)}</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">이번 달 매수 종목</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${tickers.map(t=>`<span class="badge" style="background:var(--surface3);color:var(--accent)">${t}</span>`).join('')}</div>`;
+}
+
+function renderLog() {
+  const tickerF = $('filter-ticker')?.value || '';
+  const typeF = $('filter-type')?.value || '';
+  const filtered = entries.filter(e => (!tickerF||e.ticker===tickerF) && (!typeF||e.type===typeF));
+  const buy = entries.filter(e=>e.type==='buy').reduce((s,e)=>s+e.amount,0);
+  const sell = entries.filter(e=>e.type==='sell').reduce((s,e)=>s+e.amount,0);
+  $('m-buy').textContent = fmt(buy);
+  $('m-sell').textContent = fmt(sell);
+  $('m-buy-cnt').textContent = entries.filter(e=>e.type==='buy').length + '회';
+  $('m-sell-cnt').textContent = entries.filter(e=>e.type==='sell').length + '회';
+  const tbody = $('log-body');
+  if(filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="empty">거래 내역이 없습니다</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(e => {
+    const noteText = (e.memo || '') + (e.sellReason ? ` [${e.sellReason}]` : '');
+    return `<tr>
+      <td class="td-muted" style="font-size:12px">${e.date}</td>
+      <td class="td-ticker">${e.ticker}</td>
+      <td><span class="badge badge-${e.type}">${e.type==='buy'?'매수':'매도'}</span></td>
+      <td class="td-num" style="font-weight:500">${fmtDec(e.amount)}</td>
+      <td class="td-muted td-num">${e.price ? fmtDec(e.price) : '-'}</td>
+      <td class="td-muted">${e.qty ? e.qty.toFixed(3)+'주' : '-'}</td>
+      <td><div class="td-note" title="${noteText}">${noteText || '-'}</div></td>
+      <td><button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const buyTotal = entries.filter(e=>e.type==='buy').reduce((s,e)=>s+e.amount,0);
+  const sellTotal = entries.filter(e=>e.type==='sell').reduce((s,e)=>s+e.amount,0);
+  const buys = entries.filter(e=>e.type==='buy');
+  const covered = new Set(buys.map(e=>e.ticker)).size;
+  $('s-net').textContent = fmt(buyTotal-sellTotal);
+  $('s-covered').textContent = covered + ' / 20';
+  $('s-buys').textContent = buys.length + '회';
+  if(buys.length >= 2) {
+    const dates = buys.map(e=>new Date(e.date)).sort((a,b)=>a-b);
+    const avg = (dates[dates.length-1]-dates[0])/(1000*60*60*24*(buys.length-1));
+    $('s-interval').textContent = Math.round(avg) + '일';
+  } else { $('s-interval').textContent = '-'; }
+
+  const map = {};
+  STOCKS.forEach(s => { map[s.ticker] = {name:s.name,sector:s.sector,buyAmt:0,sellAmt:0,buyCnt:0,cost:0,qty:0}; });
+  entries.forEach(e => {
+    if(!map[e.ticker]) return;
+    if(e.type==='buy') {
+      map[e.ticker].buyAmt += e.amount;
+      map[e.ticker].buyCnt++;
+      if(e.price && e.qty) { map[e.ticker].cost += e.price*e.qty; map[e.ticker].qty += e.qty; }
+    } else { map[e.ticker].sellAmt += e.amount; }
+  });
+
+  $('summary-body').innerHTML = STOCKS.map(s => {
+    const d = map[s.ticker];
+    const avg = d.qty > 0 ? fmtDec(d.cost/d.qty) : '-';
+    const net = d.buyAmt - d.sellAmt;
+    const dim = d.buyCnt === 0;
+    return `<tr style="${dim?'opacity:.35':''}">
+      <td class="td-ticker">${s.ticker}</td>
+      <td style="font-size:12px;color:var(--text2)">${d.name}</td>
+      <td class="td-num" style="color:var(--green)">${d.buyAmt>0?fmtDec(d.buyAmt):'-'}</td>
+      <td class="td-num" style="color:var(--red)">${d.sellAmt>0?fmtDec(d.sellAmt):'-'}</td>
+      <td class="td-num" style="font-weight:500">${net>0?fmtDec(net):'-'}</td>
+      <td style="text-align:center;color:var(--text2)">${d.buyCnt>0?d.buyCnt+'회':'-'}</td>
+      <td class="td-num">${avg}</td>
+      <td><span class="badge-sector">${d.sector}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDCA() {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const buys = entries.filter(e=>e.type==='buy');
+  const cntMap = {};
+  STOCKS.forEach(s => cntMap[s.ticker] = 0);
+  buys.forEach(e => { if(cntMap[e.ticker]!==undefined) cntMap[e.ticker]++; });
+  const maxCnt = Math.max(...Object.values(cntMap), 1);
+  const started = Object.values(cntMap).filter(v=>v>0).length;
+  const thisMonthSet = new Set(buys.filter(e=>e.date&&e.date.startsWith(ym)).map(e=>e.ticker));
+  const mostTicker = Object.entries(cntMap).sort((a,b)=>b[1]-a[1])[0];
+  $('d-started').textContent = started;
+  $('d-this-month').textContent = thisMonthSet.size;
+  $('d-most').textContent = mostTicker && mostTicker[1] > 0 ? `${mostTicker[0]} (${mostTicker[1]}회)` : '-';
+  $('d-zero').textContent = 20 - started;
+
+  $('dca-bars').innerHTML = STOCKS.map(s => {
+    const cnt = cntMap[s.ticker] || 0;
+    const pct = cnt > 0 ? Math.max((cnt/maxCnt)*100, 4) : 0;
+    return `<div class="prog-item">
+      <div class="prog-row">
+        <span>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--accent)">${s.ticker}</span>
+          <span style="font-size:12px;color:var(--text3);margin-left:8px">${s.name}</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:12px;color:${cnt>0?'var(--text2)':'var(--text3)'}">${cnt}회</span>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-fill ${cnt >= 10 ? 'filled' : ''}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Init
+buildStockGrid();
+updateSidebar();
+renderRecent();
+renderThisMonth();
+$('f-date').value = new Date().toISOString().split('T')[0];
+$('f-amount').value = '2000';
+</script>
+</body>
+</html>
